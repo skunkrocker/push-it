@@ -1,0 +1,16 @@
+.idea
+.gradle
+build/
+
+*.jar
+.*war
+.ear
+
+*.class
+
+gradle-app.settings
+
+!gradle-wrapper.jar
+
+.gradletasknamecache
+
