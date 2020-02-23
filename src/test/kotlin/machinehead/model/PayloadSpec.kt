@@ -1,7 +1,7 @@
 package machinehead.model
 
 import org.amshove.kluent.shouldBeEqualTo
-import org.amshove.kluent.shouldNotBe
+import org.amshove.kluent.shouldNotBeNull
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.given
 import org.jetbrains.spek.api.dsl.it
@@ -32,10 +32,10 @@ class PayloadSpec : Spek({
 
         it("should contain the correct body, title and badge") {
 
-            thePayload.custom shouldNotBe null
-            thePayload.notification shouldNotBe null
-            thePayload.notification?.aps shouldNotBe null
-            thePayload.notification?.aps?.alert shouldNotBe null
+            thePayload.custom.shouldNotBeNull()
+            thePayload.notification.shouldNotBeNull()
+            thePayload.notification?.aps.shouldNotBeNull()
+            thePayload.notification?.aps?.alert.shouldNotBeNull()
 
 
             val badge = thePayload.notification?.aps?.badge
