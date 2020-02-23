@@ -5,12 +5,13 @@ fun payload(block: PayloadBuilder.() -> Unit): Payload = PayloadBuilder().apply(
 class PayloadBuilder {
     var notification: Notification? = null
     var custom = hashMapOf<String, Any>()
+    var tokens = listOf<String>()
 
     fun notification(block: NotificationBuilder.() -> Unit) {
         notification = NotificationBuilder().apply(block).build()
     }
 
-    fun build(): Payload = Payload(notification, custom)
+    fun build(): Payload = Payload(notification, custom, tokens)
 }
 
 class NotificationBuilder {

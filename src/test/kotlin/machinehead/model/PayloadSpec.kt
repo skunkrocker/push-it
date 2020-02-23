@@ -1,6 +1,7 @@
 package machinehead.model
 
 import org.amshove.kluent.shouldBeEqualTo
+import org.amshove.kluent.shouldContain
 import org.amshove.kluent.shouldNotBeNull
 import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.given
@@ -11,6 +12,9 @@ class PayloadTestData {
         const val body: String = "Hello world"
         const val title: String = "Awesome payload"
         const val badge: Int = 1
+
+        const val token1 = "123456789"
+        const val token2 = "987654321"
     }
 }
 
@@ -45,6 +49,17 @@ class PayloadSpec : Spek({
             body shouldBeEqualTo PayloadTestData.body
             badge shouldBeEqualTo PayloadTestData.badge
             title shouldBeEqualTo PayloadTestData.title
+        }
+    }
+
+    given("device tokes were provided with the payload builder") {
+        val thePayload = payload {
+            tokens = listOf(PayloadTestData.token1, PayloadTestData.token2)
+        }
+
+        it("should contain the list of device tokens") {
+            thePayload.tokens shouldContain PayloadTestData.token1
+            thePayload.tokens shouldContain PayloadTestData.token2
         }
     }
 })
