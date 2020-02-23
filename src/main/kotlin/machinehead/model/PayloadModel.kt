@@ -7,7 +7,7 @@ data class Payload(var notification: Notification? = null, var custom: HashMap<S
 data class Notification(var aps: Aps? = null)
 
 data class Aps(
-    val alert: Alert? = null,
+    var alert: Alert? = null,
     var sound: String? = null,
     var badge: Int? = null,
     var category: String? = null,
