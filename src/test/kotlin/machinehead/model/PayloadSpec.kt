@@ -9,12 +9,14 @@ import org.jetbrains.spek.api.dsl.it
 
 class PayloadTestData {
     companion object {
+        const val badge: Int = 1
         const val body: String = "Hello world"
         const val title: String = "Awesome payload"
-        const val badge: Int = 1
 
         const val token1 = "123456789"
         const val token2 = "987654321"
+
+        const val custom_property = "custom-property"
     }
 }
 
@@ -60,6 +62,15 @@ class PayloadSpec : Spek({
         it("should contain the list of device tokens") {
             thePayload.tokens shouldContain PayloadTestData.token1
             thePayload.tokens shouldContain PayloadTestData.token2
+        }
+    }
+
+    given("custom properties are provided with payload builder") {
+        val thePayload = payload {
+            custom = hashMapOf(PayloadTestData.custom_property to 1)
+        }
+        it("should contain the custom property") {
+            thePayload.custom.keys shouldContain PayloadTestData.custom_property
         }
     }
 })
