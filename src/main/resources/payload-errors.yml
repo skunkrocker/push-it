@@ -1,0 +1,4 @@
+noAlert:
+  "valid notification must include at least the alert dictionary with body set"
+noTokens:
+  "payload must include the device tokens"
