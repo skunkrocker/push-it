@@ -7,7 +7,7 @@ import org.jetbrains.spek.api.Spek
 import org.jetbrains.spek.api.dsl.describe
 import org.jetbrains.spek.api.dsl.it
 
-class PayloadSpec : Spek({
+class YAMLSpec : Spek({
     describe("parsing error messages are loaded from yaml file") {
 
         val errors = From the YAMLFile("payload-errors.yml", ParseErrors::class)
