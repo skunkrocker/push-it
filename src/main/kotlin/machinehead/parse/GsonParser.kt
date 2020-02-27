@@ -1,9 +1,7 @@
 package machinehead.parse
 
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonParser
 import machinehead.model.Payload
-import machinehead.model.payload
 
 data class ParseErrors(val noTokens: String, val noAlert: String)
 
