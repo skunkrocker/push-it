@@ -2,10 +2,11 @@ package machinehead.model
 
 import com.google.gson.annotations.SerializedName
 
-data class Payload(
+class Payload(
     var notification: Notification?,
     var custom: HashMap<String, Any>,
-    var tokens: List<String>
+    var tokens: List<String>,
+    var isProduction: Boolean = false
 )
 
 data class Notification(var aps: Aps? = null)

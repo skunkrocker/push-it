@@ -5,40 +5,40 @@ import machinehead.model.payload
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.parse.ParseErrors
-import machinehead.parse.notificationAsString
 
-data class PayloadValidation(val wasValid: Boolean, val error: String)
-data class P12CertEnvKeys(var passKey: String, var encodedP12Key: String)
+class InvalidNotification(message: String) : Exception(message)
+class TokensMissingException(message: String) : Exception(message)
 
-object Push {
-    private val errors = From the YAMLFile("payload-errors.yml", ParseErrors::class)
+data class Response(val status: String, val message: String)
+data class PushResult(val responses: Map<String, Response>?, val internalError: Exception?)
 
-    infix fun the(payload: Payload) {
-        validate(payload, {
-            it notificationAsString {
+val Payload.errors: ParseErrors
+    get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
 
+infix fun Payload.push(result: (PushResult) -> Unit) {
+    result(
+        validate {
+            val messageForTokens = mutableMapOf<String, Response>()
+            this.tokens.forEach {
+                messageForTokens[it] = Response("200", "Message")
             }
-        }, {
-
-        })
-    }
-
-    private fun validate(payload: Payload, ifValid: (Payload) -> Unit, ifNotValid: (PayloadValidation) -> Unit) {
-        if (payload.notification?.aps?.alert == null) {
-            ifNotValid(PayloadValidation(false, this.errors.noAlert))
-            return
+            return@validate PushResult(messageForTokens, null)
         }
-        if (payload.tokens.isEmpty()) {
-            ifNotValid(PayloadValidation(false, this.errors.noTokens))
-            return
-        }
-        ifValid(payload)
+    )
+}
+
+private fun Payload.validate(isValid: () -> PushResult): PushResult {
+    if (this.tokens.isEmpty()) {
+        return PushResult(null, TokensMissingException(errors.noTokens))
     }
+    if (this.notification?.aps?.alert == null) {
+        return PushResult(null, InvalidNotification(errors.noAlert))
+    }
+    return isValid()
 }
 
 fun main() {
-
-    val payload = payload {
+    payload {
         notification {
             aps {
                 alert {
@@ -51,7 +51,8 @@ fun main() {
             "custom-property" to "hello custom",
             "blow-up" to true
         )
-        tokens = arrayListOf("", "")
+        tokens = arrayListOf("asdfsd", "sadfsdf")
+    } push {
+        println(it)
     }
-    Push the payload
 }
