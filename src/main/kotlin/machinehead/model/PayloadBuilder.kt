@@ -1,17 +1,20 @@
 package machinehead.model
 
+import machinehead.servers.Platform
+
 fun payload(block: PayloadBuilder.() -> Unit): Payload = PayloadBuilder().apply(block).build()
 
 class PayloadBuilder {
     var notification: Notification? = null
     var custom = hashMapOf<String, Any>()
     var tokens = listOf<String>()
+    var platform = Platform.IOS_SANDBOX
 
     fun notification(block: NotificationBuilder.() -> Unit) {
         notification = NotificationBuilder().apply(block).build()
     }
 
-    fun build(): Payload = Payload(notification, custom, tokens)
+    fun build(): Payload = Payload(notification, custom, tokens, platform)
 }
 
 class NotificationBuilder {
