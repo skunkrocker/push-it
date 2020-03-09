@@ -5,36 +5,50 @@ import machinehead.model.payload
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.parse.ParseErrors
-
-class InvalidNotification(message: String) : Exception(message)
-class TokensMissingException(message: String) : Exception(message)
-
-data class Response(val status: String, val message: String)
-data class PushResult(val responses: Map<String, Response>?, val internalError: Exception?)
-
-val Payload.errors: ParseErrors
-    get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
+import machinehead.result.InvalidNotification
+import machinehead.result.PushResult
+import machinehead.result.Response
+import machinehead.result.TokensMissingException
 
 infix fun Payload.push(result: (PushResult) -> Unit) {
-    result(
-        validate {
-            val messageForTokens = mutableMapOf<String, Response>()
-            this.tokens.forEach {
-                messageForTokens[it] = Response("200", "Message")
-            }
-            return@validate PushResult(messageForTokens, null)
-        }
-    )
+    PushIt.with(this) {
+        result(it)
+    }
 }
 
-private fun Payload.validate(isValid: () -> PushResult): PushResult {
-    if (this.tokens.isEmpty()) {
-        return PushResult(null, TokensMissingException(errors.noTokens))
+sealed class PushIt {
+    companion object {
+        private val errors: ParseErrors
+            get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
+
+        fun with(payload: Payload, result: (PushResult) -> Unit) {
+            result(
+                validate(payload) {
+                    val messageForTokens = mutableMapOf<String, Response>()
+                    payload.tokens.forEach {
+                        messageForTokens[it] = Response("200", "Message")
+                    }
+                    return@validate PushResult(messageForTokens, null)
+                }
+            )
+        }
+
+        private fun validate(payload: Payload, isValid: () -> PushResult): PushResult {
+            if (payload.tokens.isEmpty()) {
+                return PushResult(
+                    null,
+                    TokensMissingException(errors.noTokens)
+                )
+            }
+            if (payload.notification?.aps?.alert == null) {
+                return PushResult(
+                    null,
+                    InvalidNotification(errors.noAlert)
+                )
+            }
+            return isValid()
+        }
     }
-    if (this.notification?.aps?.alert == null) {
-        return PushResult(null, InvalidNotification(errors.noAlert))
-    }
-    return isValid()
 }
 
 fun main() {
