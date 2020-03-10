@@ -3,7 +3,7 @@ package machinehead.parse
 import com.google.gson.GsonBuilder
 import machinehead.model.Payload
 
-data class ParseErrors(var credentialsError: String?, var noTokens: String?, var noAlert: String?)
+data class ParseErrors(var credentialsError: String?, var noTokens: String?, var noAlert: String?, var noTopic: String?)
 
 infix fun Payload.notificationAsString(onParsed: (notification: String) -> Unit) {
     onParsed(notificationAsString())

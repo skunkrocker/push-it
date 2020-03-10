@@ -4,3 +4,5 @@ noTokens:
   "payload must include the device tokens"
 credentialsError:
   "Could not create the ssl factory and trust manager with the provided credentials or credentials manager"
+noTopic:
+  "You have to provide the \"apns-topic\" in the headers of the payload. It is usually the bundle id of your App"
