@@ -1,14 +1,15 @@
 package machinehead
 
+import machinehead.credentials.CredentialsManager
+import machinehead.credentials.P12CredentialsFromEnv
 import machinehead.model.Payload
 import machinehead.model.payload
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.parse.ParseErrors
-import machinehead.result.InvalidNotification
-import machinehead.result.PushResult
-import machinehead.result.Response
-import machinehead.result.TokensMissingException
+import machinehead.result.*
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.X509TrustManager
 
 infix fun Payload.push(result: (PushResult) -> Unit) {
     PushIt.with(this) {
@@ -18,17 +19,30 @@ infix fun Payload.push(result: (PushResult) -> Unit) {
 
 sealed class PushIt {
     companion object {
+
+        private var credentials: CredentialsManager = P12CredentialsFromEnv()
+
         private val errors: ParseErrors
             get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
+
+        var credentialsManager: CredentialsManager
+            get() = this.credentials
+            set(value) {
+                this.credentials = value
+            }
 
         fun with(payload: Payload, result: (PushResult) -> Unit) {
             result(
                 validate(payload) {
-                    val messageForTokens = mutableMapOf<String, Response>()
-                    payload.tokens.forEach {
-                        messageForTokens[it] = Response("200", "Message")
-                    }
-                    return@validate PushResult(messageForTokens, null)
+                    return@validate credentials.credentials({ _: SSLSocketFactory, _: X509TrustManager ->
+                        val messageForTokens = mutableMapOf<String, Response>()
+                        payload.tokens.forEach {
+                            messageForTokens[it] = Response("200", "Message")
+                        }
+                        return@credentials PushResult(messageForTokens, null)
+                    }, {
+                        return@credentials PushResult(null, errors.credentialsError?.let { CredentialsException(it) })
+                    })
                 }
             )
         }
@@ -37,13 +51,13 @@ sealed class PushIt {
             if (payload.tokens.isEmpty()) {
                 return PushResult(
                     null,
-                    TokensMissingException(errors.noTokens)
+                    errors.noTokens?.let { TokensMissingException(it) }
                 )
             }
             if (payload.notification?.aps?.alert == null) {
                 return PushResult(
                     null,
-                    InvalidNotification(errors.noAlert)
+                    errors.noAlert?.let { InvalidNotification(it) }
                 )
             }
             return isValid()
