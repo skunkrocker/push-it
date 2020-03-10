@@ -8,6 +8,7 @@ import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.parse.ParseErrors
 import machinehead.result.*
+import machinehead.servers.Platform
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
@@ -79,6 +80,7 @@ fun main() {
             "custom-property" to "hello custom",
             "blow-up" to true
         )
+        platform = Platform.IOS
         tokens = arrayListOf("asdfsd", "sadfsdf")
     } push {
         println(it)

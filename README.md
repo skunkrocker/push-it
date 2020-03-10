@@ -16,6 +16,7 @@ payload {
         "custom-property" to "hello custom",
         "blow-up" to true
     )
+    platform = Platform.IOS
     tokens = arrayListOf("asdfsd", "sadfsdf")
 } push {
     println(it)
