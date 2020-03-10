@@ -22,7 +22,7 @@
     }
 ```
 
-```python
+```ruby
 val payload = 
     payload {
         notification {
