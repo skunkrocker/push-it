@@ -40,5 +40,7 @@ val payload =
         tokens = arrayListOf("asdfsd", "sadfsdf")
     } 
 
-PushIt.with(payload)
+PushIt.with(payload) {
+   println(it)
+}
 ```
