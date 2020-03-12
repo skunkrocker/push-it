@@ -82,6 +82,9 @@ fun main() {
                 }
             }
         }
+        headers = hashMapOf(
+            "apns-topic" to "ch.sbb.ios.pushnext"
+        )
         custom = hashMapOf(
             "custom-property" to "hello custom",
             "blow-up" to true

@@ -2,7 +2,6 @@ package machinehead.credentials
 
 import machinehead.result.PushResult
 import machinehead.result.Response
-import java.io.ByteArrayInputStream
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.SecureRandom
@@ -32,7 +31,7 @@ class P12CredentialsFromEnv : CredentialsManager {
     }
 
     private fun readFromEnv(credentials: (String, String) -> PushResult): PushResult {
-        val pass = System.getenv("PASSWORD") ?: return PushResult(
+        val password = System.getenv("PASSWORD") ?: return PushResult(
             hashMapOf(
                 "error" to Response(
                     "500",
@@ -41,7 +40,7 @@ class P12CredentialsFromEnv : CredentialsManager {
             )
         )
 
-        val cert = System.getenv("CERTIFICATE") ?: return PushResult(
+        val certificate = System.getenv("CERTIFICATE") ?: return PushResult(
             hashMapOf(
                 "error" to Response(
                     "500",
@@ -50,7 +49,7 @@ class P12CredentialsFromEnv : CredentialsManager {
             )
         )
 
-        return credentials(cert, cert)
+        return credentials(certificate, password)
     }
 
     private fun sslFactoryWithTrustManager(
@@ -59,10 +58,18 @@ class P12CredentialsFromEnv : CredentialsManager {
     ): Pair<SSLSocketFactory?, X509TrustManager?> {
         try {
             val keyStore = KeyStore.getInstance("PKCS12")
-            val decodedCertificate = Base64.getDecoder().decode(password)
-            keyStore.load(ByteArrayInputStream(decodedCertificate), password.toCharArray())
 
-            val keyFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm())
+            val decodedCertificate = Base64
+                .getDecoder()
+                .decode(certificate)
+                .inputStream()
+
+            keyStore.load(decodedCertificate, password.toCharArray())
+
+            val keyFactory = KeyManagerFactory.getInstance(
+                KeyManagerFactory.getDefaultAlgorithm()
+            )
+
             keyFactory.init(keyStore, password.toCharArray())
 
             val keyManagers = keyFactory.keyManagers
