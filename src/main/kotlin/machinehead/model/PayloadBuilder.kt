@@ -9,12 +9,13 @@ class PayloadBuilder {
     var custom = hashMapOf<String, Any>()
     var tokens = listOf<String>()
     var platform = Platform.IOS_SANDBOX
+    var headers = hashMapOf<String, Any>()
 
     fun notification(block: NotificationBuilder.() -> Unit) {
         notification = NotificationBuilder().apply(block).build()
     }
 
-    fun build(): Payload = Payload(notification, custom, tokens, platform)
+    fun build(): Payload = Payload(platform, tokens, headers, notification, custom)
 }
 
 class NotificationBuilder {

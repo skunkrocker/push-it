@@ -7,7 +7,9 @@ import machinehead.model.payload
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.parse.ParseErrors
-import machinehead.result.*
+import machinehead.result.PushResult
+import machinehead.result.Response
+import machinehead.servers.Platform
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
@@ -35,13 +37,15 @@ sealed class PushIt {
             result(
                 validate(payload) {
                     return@validate credentials.credentials({ _: SSLSocketFactory, _: X509TrustManager ->
-                        val messageForTokens = mutableMapOf<String, Response>()
+                        val messageForTokens = mutableMapOf<String, Response?>()
                         payload.tokens.forEach {
                             messageForTokens[it] = Response("200", "Message")
                         }
-                        return@credentials PushResult(messageForTokens, null)
+                        return@credentials PushResult(messageForTokens as HashMap<String, Response?>)
                     }, {
-                        return@credentials PushResult(null, errors.credentialsError?.let { CredentialsException(it) })
+                        return@credentials PushResult(
+                            hashMapOf("error" to errors.credentialsError?.let { Response("500", it) })
+                        )
                     })
                 }
             )
@@ -50,14 +54,17 @@ sealed class PushIt {
         private fun validate(payload: Payload, isValid: () -> PushResult): PushResult {
             if (payload.tokens.isEmpty()) {
                 return PushResult(
-                    null,
-                    errors.noTokens?.let { TokensMissingException(it) }
+                    hashMapOf("error" to errors.noTokens?.let { Response("500", it) })
                 )
             }
             if (payload.notification?.aps?.alert == null) {
                 return PushResult(
-                    null,
-                    errors.noAlert?.let { InvalidNotification(it) }
+                    hashMapOf("error" to errors.noAlert?.let { Response("500", it) })
+                )
+            }
+            if (payload.headers.isEmpty()) {
+                return PushResult(
+                    hashMapOf("error" to errors.noTopic?.let { Response("500", it) })
                 )
             }
             return isValid()
@@ -75,10 +82,14 @@ fun main() {
                 }
             }
         }
+        headers = hashMapOf(
+            "apns-topic" to "ch.sbb.ios.pushnext"
+        )
         custom = hashMapOf(
             "custom-property" to "hello custom",
             "blow-up" to true
         )
+        platform = Platform.IOS
         tokens = arrayListOf("asdfsd", "sadfsdf")
     } push {
         println(it)

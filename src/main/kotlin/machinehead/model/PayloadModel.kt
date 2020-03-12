@@ -4,10 +4,11 @@ import com.google.gson.annotations.SerializedName
 import machinehead.servers.Platform
 
 class Payload(
-    var notification: Notification?,
-    var custom: HashMap<String, Any>,
+    var platform: Platform,
     var tokens: List<String>,
-    var platform: Platform
+    var headers: Map<String, Any>,
+    var notification: Notification?,
+    var custom: HashMap<String, Any>
 )
 
 data class Notification(var aps: Aps? = null)
