@@ -9,7 +9,7 @@ import machinehead.model.yaml.YAMLFile
 import machinehead.parse.ParseErrors
 import machinehead.result.PushResult
 import machinehead.result.Response
-import machinehead.servers.Platform
+import machinehead.servers.Stage
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
@@ -89,7 +89,7 @@ fun main() {
             "custom-property" to "hello custom",
             "blow-up" to true
         )
-        platform = Platform.IOS
+        stage = Stage.DEVELOPMENT
         tokens = arrayListOf("asdfsd", "sadfsdf")
     } push {
         println(it)
