@@ -10,6 +10,7 @@ import machinehead.parse.ParseErrors
 import machinehead.result.PushResult
 import machinehead.result.Response
 import machinehead.servers.Stage
+import machinehead.servers.Stage.DEVELOPMENT
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
@@ -36,19 +37,30 @@ sealed class PushIt {
         fun with(payload: Payload, result: (PushResult) -> Unit) {
             result(
                 validate(payload) {
-                    return@validate credentials.credentials({ _: SSLSocketFactory, _: X509TrustManager ->
-                        val messageForTokens = mutableMapOf<String, Response?>()
-                        payload.tokens.forEach {
-                            messageForTokens[it] = Response("200", "Message")
-                        }
-                        return@credentials PushResult(messageForTokens as HashMap<String, Response?>)
-                    }, {
-                        return@credentials PushResult(
-                            hashMapOf("error" to errors.credentialsError?.let { Response("500", it) })
-                        )
-                    })
+                    return@validate credentials.credentials(
+                        pushWithCredentials(payload),
+                        noCredentialsFound()
+                    )
                 }
             )
+        }
+
+        private fun pushWithCredentials(payload: Payload): (SSLSocketFactory, X509TrustManager) -> PushResult {
+            return credentials@{ _: SSLSocketFactory, _: X509TrustManager ->
+                val messageForTokens = mutableMapOf<String, Response?>()
+                payload.tokens.forEach {
+                    messageForTokens[it] = Response("200", "Message")
+                }
+                return@credentials PushResult(messageForTokens as HashMap<String, Response?>)
+            }
+        }
+
+        private fun noCredentialsFound(): () -> PushResult {
+            return credentials@{
+                return@credentials PushResult(
+                    hashMapOf("error" to errors.credentialsError?.let { Response("500", it) })
+                )
+            }
         }
 
         private fun validate(payload: Payload, isValid: () -> PushResult): PushResult {
@@ -89,8 +101,8 @@ fun main() {
             "custom-property" to "hello custom",
             "blow-up" to true
         )
-        stage = Stage.DEVELOPMENT
-        tokens = arrayListOf("asdfsd", "sadfsdf")
+        stage = DEVELOPMENT
+        tokens = arrayListOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
     } push {
         println(it)
     }
