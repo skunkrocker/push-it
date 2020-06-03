@@ -10,6 +10,8 @@ import machinehead.model.yaml.YAMLFile
 import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
 import machinehead.parse.ParseErrors
 import machinehead.servers.Stage.DEVELOPMENT
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.X509TrustManager
 
 /*
 infix fun Payload.push(result: (PushResult) -> Unit) {
@@ -34,19 +36,20 @@ class ErrorListener {
 
 infix fun Payload.push(errorsAndResults: (Either<ClientError, APNSResponse>) -> Unit) {
     val pushIt = PushIt()
-    val errorListener = ErrorListener()
-    pushIt.with(this, errorListener)
+    pushIt.with(this)
 
-    if (errorListener.hasErrors) {
-        errorsAndResults(Either.Left(errorListener.occurredErrors.first()))
+    if (pushIt.errorListener.hasErrors) {
+        errorsAndResults(Either.Left(pushIt.errorListener.occurredErrors.first()))
     }
 }
 
 class PushIt {
 
     private var credentials: CredentialsManager = P12CredentialsFromEnv()
+    private var theErrorListener = ErrorListener()
 
-    private val errors: ParseErrors
+
+    private val errorMessages: ParseErrors
         get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
 
     var credentialsManager: CredentialsManager
@@ -55,92 +58,61 @@ class PushIt {
             this.credentials = value
         }
 
-    fun with(payload: Payload, errorListener: ErrorListener) {
+    var errorListener: ErrorListener
+        get() = this.theErrorListener
+        set(value) {
+            this.theErrorListener = value
+        }
+
+    infix fun with(payload: Payload) {
         validate(payload)
-            .fold({
-                forValidPayload(payload, errorListener)
-            }, {
-                errorListener report it
-            })
+            .fold(
+                push(),
+                reportError()
+            )
     }
 
-    private fun forValidPayload(payload: Payload, errorListener: ErrorListener) {
-        credentials
-            .credentials()
-            .fold(
-                {
-                    errorListener report it
-                }, { factoryManager ->
-                    createOkClient(factoryManager)
-                        .fold({
-                            errorListener report it
-                        }, { okClient ->
+    private fun push(): () -> Unit {
+        return {
+            credentialsManager
+                .credentials()
+                .fold(
+                    reportError(),
+                    createOkClientAndPush()
+                )
+        }
+    }
 
-                        })
-                })
+    private fun createOkClientAndPush(): (Pair<SSLSocketFactory, X509TrustManager>) -> Unit {
+        return { socketFactoryAndTrustManager ->
+            createOkClient(socketFactoryAndTrustManager)
+                .fold(
+                    reportError(),
+                    { okClient ->
+
+                    })
+        }
+    }
+
+    private fun reportError(): (ClientError) -> Unit {
+        return {
+            this.theErrorListener report it
+        }
     }
 
     private fun validate(payload: Payload): Option<ClientError> {
         if (payload.tokens.isEmpty()) {
-            return Some(ClientError(errors.noTokens.orEmpty()))
+            return Some(ClientError(errorMessages.noTokens.orEmpty()))
         }
         if (payload.notification?.aps?.alert == null) {
-            return Some(ClientError(errors.noAlert.orEmpty()))
+            return Some(ClientError(errorMessages.noAlert.orEmpty()))
         }
 
         if (payload.headers.isEmpty()) {
-            return Some(ClientError(errors.noTopic.orEmpty()))
+            return Some(ClientError(errorMessages.noTopic.orEmpty()))
         }
         return None
     }
-    /*
-    fun with(payload: Payload, result: (PushResult) -> Unit) {
-        result(
-            validate(payload) {
-                return@validate credentials.credentials(
-                    pushWithCredentials(payload),
-                    noCredentialsFound()
-                )
-            }
-        )
-    }
-    private fun pushWithCredentials(payload: Payload): (SSLSocketFactory, X509TrustManager) -> PushResult {
-        return credentials@{ _: SSLSocketFactory, _: X509TrustManager ->
-            val messageForTokens = mutableMapOf<String, Response?>()
-            payload.tokens.forEach {
-                messageForTokens[it] = Response("200", "Message")
-            }
-            return@credentials PushResult(messageForTokens as HashMap<String, Response?>)
-        }
-    }
-
-    private fun noCredentialsFound(): () -> PushResult {
-        return credentials@{
-            return@credentials PushResult(
-                hashMapOf("error" to errors.credentialsError?.let { Response("500", it) })
-            )
-        }
-    }
-
-    private fun validate(payload: Payload, isValid: () -> PushResult): PushResult {
-        if (payload.tokens.isEmpty()) {
-            return PushResult(
-                hashMapOf("error" to errors.noTokens?.let { Response("500", it) })
-            )
-        }
-        if (payload.notification?.aps?.alert == null) {
-            return PushResult(
-                hashMapOf("error" to errors.noAlert?.let { Response("500", it) })
-            )
-        }
-        if (payload.headers.isEmpty()) {
-            return PushResult(
-                hashMapOf("error" to errors.noTopic?.let { Response("500", it) })
-            )
-        }
-        return isValid()
-    }
- */
 }
 
 fun main() {

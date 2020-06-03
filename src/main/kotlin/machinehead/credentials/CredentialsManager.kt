@@ -11,11 +11,6 @@ import java.util.*
 import javax.net.ssl.*
 
 interface CredentialsManager {
-    fun credentials(
-        withFactoryAndTrustManager: (SSLSocketFactory, X509TrustManager) -> PushResult,
-        onError: () -> PushResult
-    ): PushResult
-
     fun credentials(): Either<ClientError, Pair<SSLSocketFactory, X509TrustManager>>
 }
 
@@ -40,13 +35,6 @@ class P12CredentialsFromEnv : CredentialsManager {
         return result
     }
 
-    fun withCredentials(
-        withFactoryAndTrustManager: (SSLSocketFactory, X509TrustManager) -> Unit,
-        onError: (ClientError) -> Unit
-    ) {
-
-    }
-
     private fun readFromEnv(credentials: (String, String) -> Unit, notFound: (ClientError) -> Unit) {
         val password = System.getenv("PASSWORD") ?: return notFound(
             ClientError(
@@ -62,21 +50,6 @@ class P12CredentialsFromEnv : CredentialsManager {
 
         return credentials(certificate, password)
     }
-
-    override fun credentials(
-        withFactoryAndTrustManager: (SSLSocketFactory, X509TrustManager) -> PushResult,
-        onError: () -> PushResult
-    ): PushResult {
-        return readFromEnv() { certificate, password ->
-            val factoryAndTrustManager = sslFactoryWithTrustManager(certificate, password)
-
-            val factory = factoryAndTrustManager.first ?: return@readFromEnv onError()
-            val manager = factoryAndTrustManager.second ?: return@readFromEnv onError()
-
-            return@readFromEnv withFactoryAndTrustManager(factory, manager)
-        }
-    }
-
 
     private fun readFromEnv(credentials: (String, String) -> PushResult): PushResult {
         val password = System.getenv("PASSWORD") ?: return PushResult(
