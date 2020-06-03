@@ -13,14 +13,6 @@ import machinehead.servers.Stage.DEVELOPMENT
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-/*
-infix fun Payload.push(result: (PushResult) -> Unit) {
-    PushIt.with(this) {
-        result(it)
-    }
-}
-*/
-
 class ClientError(val message: String)
 class APNSResponse(val status: String, val message: String)
 
@@ -52,10 +44,12 @@ class PushIt {
     private val errorMessages: ParseErrors
         get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
 
-    var credentialsManager: CredentialsManager
+    var credentialsManager: CredentialsManager?
         get() = this.credentials
         set(value) {
-            this.credentials = value
+            if (value != null) {
+                this.credentials = value
+            }
         }
 
     var errorListener: ErrorListener
@@ -67,37 +61,9 @@ class PushIt {
     infix fun with(payload: Payload) {
         validate(payload)
             .fold(
-                push(),
+                push(payload),
                 reportError()
             )
-    }
-
-    private fun push(): () -> Unit {
-        return {
-            credentialsManager
-                .credentials()
-                .fold(
-                    reportError(),
-                    createOkClientAndPush()
-                )
-        }
-    }
-
-    private fun createOkClientAndPush(): (Pair<SSLSocketFactory, X509TrustManager>) -> Unit {
-        return { socketFactoryAndTrustManager ->
-            createOkClient(socketFactoryAndTrustManager)
-                .fold(
-                    reportError(),
-                    { okClient ->
-
-                    })
-        }
-    }
-
-    private fun reportError(): (ClientError) -> Unit {
-        return {
-            this.theErrorListener report it
-        }
     }
 
     private fun validate(payload: Payload): Option<ClientError> {
@@ -112,6 +78,50 @@ class PushIt {
             return Some(ClientError(errorMessages.noTopic.orEmpty()))
         }
         return None
+    }
+
+    private fun push(payload: Payload): () -> Unit {
+        return {
+            credentialsManager
+                .toOption()
+                .fold(
+                    reportCredentialsManagerError(),
+                    createCredentialsAndPush(payload)
+                )
+        }
+    }
+
+    private fun createCredentialsAndPush(payload: Payload): (CredentialsManager) -> Unit {
+        return {
+            it.credentials()
+                .fold(
+                    reportError(),
+                    createOkClientAndPush(payload)
+                )
+        }
+    }
+
+    private fun createOkClientAndPush(payload: Payload): (Pair<SSLSocketFactory, X509TrustManager>) -> Unit {
+        return { socketFactoryAndTrustManager ->
+            createOkClient(payload, socketFactoryAndTrustManager)
+                .fold(
+                    reportError(),
+                    { okClient ->
+
+                    })
+        }
+    }
+
+    private fun reportError(): (ClientError) -> Unit {
+        return {
+            this.theErrorListener report it
+        }
+    }
+
+    private fun reportCredentialsManagerError(): () -> Unit {
+        return {
+            errorListener report ClientError("no credential manager instantiated")
+        }
     }
 }
 
@@ -134,18 +144,13 @@ fun main() {
         )
         stage = DEVELOPMENT
         tokens = arrayListOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
-    } push { either ->
-        if (either.isLeft()) {
-            either.mapLeft { clientError -> println(clientError.message) }
-            return@push
-        }
-        if (either.isRight()) {
-            either.rightIfNotNull {
-                either.map {
-                    println(it.status)
-                    println(it.message)
-                }
-            }
-        }
+    } push { resultEither ->
+        resultEither
+            .fold({
+                println(it.message)
+            }, {
+                println(it.status)
+                println(it.message)
+            })
     }
 }

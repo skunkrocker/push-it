@@ -2,6 +2,7 @@ package machinehead.okclient
 
 import arrow.core.Either
 import machinehead.ClientError
+import machinehead.model.Payload
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import javax.net.ssl.SSLSocketFactory
@@ -9,7 +10,10 @@ import javax.net.ssl.X509TrustManager
 
 class OkClientWithCredentials {
     companion object {
-        fun createOkClient(credentials: Pair<SSLSocketFactory, X509TrustManager>): Either<ClientError, OkHttpClient> {
+        fun createOkClient(
+            payload: Payload,
+            credentials: Pair<SSLSocketFactory, X509TrustManager>
+        ): Either<ClientError, OkHttpClient> {
             try {
                 val okClientBuilder = OkHttpClient().newBuilder()
                 okClientBuilder.sslSocketFactory(credentials.first, credentials.second)
