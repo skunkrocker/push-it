@@ -120,7 +120,7 @@ class PushIt {
 
     private fun reportCredentialsManagerError(): () -> Unit {
         return {
-            errorListener report ClientError("no credential manager instantiated")
+            errorListener report ClientError(errorMessages.noCredentialsManager.orEmpty())
         }
     }
 }
