@@ -51,28 +51,6 @@ class P12CredentialsFromEnv : CredentialsManager {
         return credentials(certificate, password)
     }
 
-    private fun readFromEnv(credentials: (String, String) -> PushResult): PushResult {
-        val password = System.getenv("PASSWORD") ?: return PushResult(
-            hashMapOf(
-                "error" to Response(
-                    "500",
-                    "No password. Use PASSWORD Env variable to provide the password for the p12 certificate"
-                )
-            )
-        )
-
-        val certificate = System.getenv("CERTIFICATE") ?: return PushResult(
-            hashMapOf(
-                "error" to Response(
-                    "500",
-                    "No certificate. Use CERTIFICATE Env variable to provide the p12 file in Base64 encoded form"
-                )
-            )
-        )
-
-        return credentials(certificate, password)
-    }
-
     private fun sslFactoryWithTrustManager(
         certificate: String,
         password: String
