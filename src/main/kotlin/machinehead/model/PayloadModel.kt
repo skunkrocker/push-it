@@ -1,10 +1,10 @@
 package machinehead.model
 
 import com.google.gson.annotations.SerializedName
-import machinehead.servers.Platform
+import machinehead.servers.Stage
 
 class Payload(
-    var platform: Platform,
+    var stage: Stage,
     var tokens: List<String>,
     var headers: Map<String, Any>,
     var notification: Notification?,

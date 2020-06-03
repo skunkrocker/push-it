@@ -1,73 +1,126 @@
 package machinehead
 
+import arrow.core.*
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
 import machinehead.model.Payload
 import machinehead.model.payload
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
+import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
 import machinehead.parse.ParseErrors
-import machinehead.result.PushResult
-import machinehead.result.Response
-import machinehead.servers.Platform
+import machinehead.servers.Stage.DEVELOPMENT
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-infix fun Payload.push(result: (PushResult) -> Unit) {
-    PushIt.with(this) {
-        result(it)
+class ClientError(val message: String)
+class APNSResponse(val status: String, val message: String)
+
+class ErrorListener {
+    private val errors = ArrayList<ClientError>()
+    infix fun report(error: ClientError) {
+        errors.add(error)
+    }
+
+    val hasErrors: Boolean get() = errors.isNotEmpty()
+    val occurredErrors: List<ClientError> get() = errors
+}
+
+infix fun Payload.push(errorsAndResults: (Either<ClientError, APNSResponse>) -> Unit) {
+    val pushIt = PushIt()
+    pushIt.with(this)
+
+    if (pushIt.errorListener.hasErrors) {
+        errorsAndResults(Either.Left(pushIt.errorListener.occurredErrors.first()))
     }
 }
 
-sealed class PushIt {
-    companion object {
+class PushIt {
 
-        private var credentials: CredentialsManager = P12CredentialsFromEnv()
+    private var credentials: CredentialsManager = P12CredentialsFromEnv()
+    private var theErrorListener = ErrorListener()
 
-        private val errors: ParseErrors
-            get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
 
-        var credentialsManager: CredentialsManager
-            get() = this.credentials
-            set(value) {
+    private val errorMessages: ParseErrors
+        get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
+
+    var credentialsManager: CredentialsManager?
+        get() = this.credentials
+        set(value) {
+            if (value != null) {
                 this.credentials = value
             }
-
-        fun with(payload: Payload, result: (PushResult) -> Unit) {
-            result(
-                validate(payload) {
-                    return@validate credentials.credentials({ _: SSLSocketFactory, _: X509TrustManager ->
-                        val messageForTokens = mutableMapOf<String, Response?>()
-                        payload.tokens.forEach {
-                            messageForTokens[it] = Response("200", "Message")
-                        }
-                        return@credentials PushResult(messageForTokens as HashMap<String, Response?>)
-                    }, {
-                        return@credentials PushResult(
-                            hashMapOf("error" to errors.credentialsError?.let { Response("500", it) })
-                        )
-                    })
-                }
-            )
         }
 
-        private fun validate(payload: Payload, isValid: () -> PushResult): PushResult {
-            if (payload.tokens.isEmpty()) {
-                return PushResult(
-                    hashMapOf("error" to errors.noTokens?.let { Response("500", it) })
+    var errorListener: ErrorListener
+        get() = this.theErrorListener
+        set(value) {
+            this.theErrorListener = value
+        }
+
+    infix fun with(payload: Payload) {
+        validate(payload)
+            .fold(
+                push(payload),
+                reportError()
+            )
+    }
+
+    private fun validate(payload: Payload): Option<ClientError> {
+        if (payload.tokens.isEmpty()) {
+            return Some(ClientError(errorMessages.noTokens.orEmpty()))
+        }
+        if (payload.notification?.aps?.alert == null) {
+            return Some(ClientError(errorMessages.noAlert.orEmpty()))
+        }
+
+        if (payload.headers.isEmpty()) {
+            return Some(ClientError(errorMessages.noTopic.orEmpty()))
+        }
+        return None
+    }
+
+    private fun push(payload: Payload): () -> Unit {
+        return {
+            credentialsManager
+                .toOption()
+                .fold(
+                    reportCredentialsManagerError(),
+                    createCredentialsAndPush(payload)
                 )
-            }
-            if (payload.notification?.aps?.alert == null) {
-                return PushResult(
-                    hashMapOf("error" to errors.noAlert?.let { Response("500", it) })
+        }
+    }
+
+    private fun createCredentialsAndPush(payload: Payload): (CredentialsManager) -> Unit {
+        return {
+            it.credentials()
+                .fold(
+                    reportError(),
+                    createOkClientAndPush(payload)
                 )
-            }
-            if (payload.headers.isEmpty()) {
-                return PushResult(
-                    hashMapOf("error" to errors.noTopic?.let { Response("500", it) })
-                )
-            }
-            return isValid()
+        }
+    }
+
+    private fun createOkClientAndPush(payload: Payload): (Pair<SSLSocketFactory, X509TrustManager>) -> Unit {
+        return { socketFactoryAndTrustManager ->
+            createOkClient(payload, socketFactoryAndTrustManager)
+                .fold(
+                    reportError(),
+                    { okClient ->
+
+                    })
+        }
+    }
+
+    private fun reportError(): (ClientError) -> Unit {
+        return {
+            this.theErrorListener report it
+        }
+    }
+
+    private fun reportCredentialsManagerError(): () -> Unit {
+        return {
+            errorListener report ClientError(errorMessages.noCredentialsManager.orEmpty())
         }
     }
 }
@@ -89,9 +142,15 @@ fun main() {
             "custom-property" to "hello custom",
             "blow-up" to true
         )
-        platform = Platform.IOS
-        tokens = arrayListOf("asdfsd", "sadfsdf")
-    } push {
-        println(it)
+        stage = DEVELOPMENT
+        tokens = arrayListOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
+    } push { resultEither ->
+        resultEither
+            .fold({
+                println(it.message)
+            }, {
+                println(it.status)
+                println(it.message)
+            })
     }
 }

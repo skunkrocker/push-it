@@ -27,6 +27,8 @@ dependencies {
     compile group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: '2.10.2'
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.10.2'
     compile group: 'com.fasterxml.jackson.datatype', name: 'jackson-datatype-jsr310', version: '2.10.2'
+    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.2.2'
+    compile group: 'io.arrow-kt', name: 'arrow-core', version: '0.10.3'
 
     testCompile 'org.jetbrains.spek:spek-api:1.1.5'
     testRuntime 'org.jetbrains.spek:spek-junit-platform-engine:1.1.5'
