@@ -60,7 +60,7 @@ PushIt.with(payload)
             .fold({ clientError ->
                 println(clientError.message)
             }, { platformResponse ->
-                println("$platformResponse.status, $platformResponse.message")
+                println("${platformResponse.status} : ${platformResponse.message}")
             })
     }
 }
