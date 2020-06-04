@@ -1,37 +1,46 @@
 package machinehead
 
 import arrow.core.*
+import kotlinx.coroutines.*
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
 import machinehead.model.Payload
 import machinehead.model.payload
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
+import machinehead.okclient.OkClientAPNSRequest.Companion.createAPNSRequest
 import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
+import machinehead.okclient.RequestData
 import machinehead.parse.ParseErrors
+import machinehead.parse.notificationAsString
 import machinehead.servers.Stage.DEVELOPMENT
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import java.io.IOException
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
 class ClientError(val message: String)
 class APNSResponse(val status: String, val message: String)
+class CreateRequestError(val token: String, val message: String)
 
 class ErrorListener {
-    private val errors = ArrayList<ClientError>()
+    private val clientErrors = ArrayList<ClientError>()
     infix fun report(error: ClientError) {
-        errors.add(error)
+        clientErrors.add(error)
     }
 
-    val hasErrors: Boolean get() = errors.isNotEmpty()
-    val occurredErrors: List<ClientError> get() = errors
+    val hasErrors: Boolean get() = clientErrors.isNotEmpty()
+    val clientErrorsOccurred: List<ClientError> get() = clientErrors
 }
 
 infix fun Payload.push(errorsAndResults: (Either<ClientError, APNSResponse>) -> Unit) {
     val pushIt = PushIt()
     pushIt.with(this)
 
+    //TODO(how to report)
     if (pushIt.errorListener.hasErrors) {
-        errorsAndResults(Either.Left(pushIt.errorListener.occurredErrors.first()))
+        errorsAndResults(Either.Left(pushIt.errorListener.clientErrorsOccurred.first()))
     }
 }
 
@@ -106,9 +115,46 @@ class PushIt {
             createOkClient(payload, socketFactoryAndTrustManager)
                 .fold(
                     reportError(),
-                    { okClient ->
+                    pushBlockingWithOkClient(payload)
+                )
+        }
+    }
 
-                    })
+    private fun pushBlockingWithOkClient(payload: Payload): (OkHttpClient) -> Unit {
+        return { okClient ->
+            val stage = payload.stage
+            payload.notificationAsString { applePayload ->
+                runBlocking {
+                    withContext(Dispatchers.IO) {
+                        payload.tokens.forEach { token ->
+                            createAPNSRequest(RequestData(applePayload, token, stage))
+                                .fold(
+                                    reportRequestCreationError(),
+                                    pushAndEvalResponse(okClient)
+                                )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private fun reportRequestCreationError(): (CreateRequestError) -> Unit {
+        return {
+            //TODO(Implement create request error)
+        }
+    }
+
+    private fun CoroutineScope.pushAndEvalResponse(okClient: OkHttpClient): (Request) -> Unit {
+        return { request ->
+            launch {
+                try {
+                    val response = okClient.newCall(request).execute()
+                    //TODO(Parse the response and do something with it)
+                } catch (e: IOException) {
+                    println("could not execute request for request: $request")
+                }
+            }
         }
     }
 
