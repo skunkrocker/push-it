@@ -149,8 +149,7 @@ fun main() {
             .fold({
                 println(it.message)
             }, {
-                println(it.status)
-                println(it.message)
+                println("${it.status} : ${it.message}")
             })
     }
 }
