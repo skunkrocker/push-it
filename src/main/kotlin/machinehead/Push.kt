@@ -1,6 +1,9 @@
 package machinehead
 
-import arrow.core.*
+import arrow.core.None
+import arrow.core.Option
+import arrow.core.Some
+import arrow.core.toOption
 import kotlinx.coroutines.*
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
@@ -16,12 +19,13 @@ import machinehead.parse.notificationAsString
 import machinehead.servers.Stage.DEVELOPMENT
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.Response
+import okhttp3.internal.closeQuietly
 import java.io.IOException
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
 class ClientError(val message: String)
-class APNSResponse(val status: String, val message: String)
 class CreateRequestError(val token: String, val message: String)
 
 class ErrorListener {
@@ -34,38 +38,30 @@ class ErrorListener {
     val clientErrorsOccurred: List<ClientError> get() = clientErrors
 }
 
-infix fun Payload.push(errorsAndResults: (Either<ClientError, APNSResponse>) -> Unit) {
+class ResponseListener {
+    private val responsesList = ArrayList<machinehead.result.Response>()
+
+    fun report(result: machinehead.result.Response) {
+        this.responsesList.add(result)
+    }
+
+    val responses get() = responsesList
+}
+
+infix fun Payload.push(errorsAndResults: (Pair<List<ClientError>, List<machinehead.result.Response>>) -> Unit) {
     val pushIt = PushIt()
     pushIt.with(this)
-
-    //TODO(how to report)
-    if (pushIt.errorListener.hasErrors) {
-        errorsAndResults(Either.Left(pushIt.errorListener.clientErrorsOccurred.first()))
-    }
+    errorsAndResults(Pair(pushIt.errorListener.clientErrorsOccurred, pushIt.responseListener.responses))
 }
 
 class PushIt {
-
-    private var credentials: CredentialsManager = P12CredentialsFromEnv()
-    private var theErrorListener = ErrorListener()
+    var credentialsManager: CredentialsManager = P12CredentialsFromEnv()
+    var errorListener = ErrorListener()
+    var responseListener = ResponseListener()
 
 
     private val errorMessages: ParseErrors
         get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
-
-    var credentialsManager: CredentialsManager?
-        get() = this.credentials
-        set(value) {
-            if (value != null) {
-                this.credentials = value
-            }
-        }
-
-    var errorListener: ErrorListener
-        get() = this.theErrorListener
-        set(value) {
-            this.theErrorListener = value
-        }
 
     infix fun with(payload: Payload) {
         validate(payload)
@@ -148,11 +144,28 @@ class PushIt {
     private fun CoroutineScope.pushAndEvalResponse(okClient: OkHttpClient): (Request) -> Unit {
         return { request ->
             launch {
+                var response: Response? = null
                 try {
-                    val response = okClient.newCall(request).execute()
-                    //TODO(Parse the response and do something with it)
+                    response = okClient.newCall(request).execute()
+                    println(response)
+                    response
+                        .toOption()
+                        .map {
+                            val theResponse = when (it.isSuccessful) {
+                                true -> machinehead.result.Response(it.code.toString(), it.message)
+                                false -> machinehead.result.Response(it.code.toString(), it.body?.string().orEmpty())
+                            }
+                            responseListener.report(theResponse)
+                        }
                 } catch (e: IOException) {
                     println("could not execute request for request: $request")
+                    errorListener.report(ClientError("error occurred when executing request: ${e.message}"))
+                } finally {
+                    response.let {
+                        println("it was successful: ${it?.isSuccessful}")
+                        it?.closeQuietly()
+                        it?.body?.closeQuietly()
+                    }
                 }
             }
         }
@@ -160,7 +173,7 @@ class PushIt {
 
     private fun reportError(): (ClientError) -> Unit {
         return {
-            this.theErrorListener report it
+            this.errorListener report it
         }
     }
 
@@ -189,13 +202,45 @@ fun main() {
             "blow-up" to true
         )
         stage = DEVELOPMENT
-        tokens = arrayListOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
-    } push { resultEither ->
-        resultEither
-            .fold({
-                println(it.message)
-            }, {
-                println("${it.status} : ${it.message}")
-            })
+        tokens = arrayListOf(
+            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55",
+            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54"
+        )
+    } push { errorsAndResults ->
+        println("the errors: ${errorsAndResults.first}")
+        println("the results: ${errorsAndResults.second}")
+    }
+
+    println("#################################################")
+    println("#                                               #")
+    println("#        next comes the second call             #")
+    println("#                                               #")
+    println("#################################################")
+
+
+    payload {
+        notification {
+            aps {
+                alert {
+                    body = "Hello"
+                    subtitle = "Subtitle"
+                }
+            }
+        }
+        headers = hashMapOf(
+            "apns-topic" to "ch.sbb.ios.pushnext"
+        )
+        custom = hashMapOf(
+            "custom-property" to "hello custom",
+            "blow-up" to true
+        )
+        stage = DEVELOPMENT
+        tokens = arrayListOf(
+            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54",
+            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55"
+        )
+    } push { errorsAndResults ->
+        println("the second errors: ${errorsAndResults.first}")
+        println("the second results: ${errorsAndResults.second}")
     }
 }
