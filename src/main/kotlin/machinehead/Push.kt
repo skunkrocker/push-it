@@ -16,6 +16,7 @@ import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
 import machinehead.okclient.RequestData
 import machinehead.parse.ParseErrors
 import machinehead.parse.notificationAsString
+import machinehead.result.PlatformResponse
 import machinehead.servers.Stage.DEVELOPMENT
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -29,7 +30,7 @@ class ClientError(val message: String)
 class CreateRequestError(val token: String, val message: String)
 
 class ErrorListener {
-    private val clientErrors = ArrayList<ClientError>()
+    private val clientErrors = mutableListOf<ClientError>()
     infix fun report(error: ClientError) {
         clientErrors.add(error)
     }
@@ -39,23 +40,23 @@ class ErrorListener {
 }
 
 class ResponseListener {
-    private val responsesList = ArrayList<machinehead.result.Response>()
+    private val responsesList = mutableListOf<PlatformResponse>()
 
-    fun report(result: machinehead.result.Response) {
+    fun report(result: PlatformResponse) {
         this.responsesList.add(result)
     }
 
     val responses get() = responsesList
 }
 
-infix fun Payload.push(errorsAndResults: (Pair<List<ClientError>, List<machinehead.result.Response>>) -> Unit) {
+infix fun Payload.push(errorsAndResults: (Pair<List<ClientError>, List<PlatformResponse>>) -> Unit) {
     val pushIt = PushIt()
     pushIt.with(this)
     errorsAndResults(Pair(pushIt.errorListener.clientErrorsOccurred, pushIt.responseListener.responses))
 }
 
 class PushIt {
-    var credentialsManager: CredentialsManager = P12CredentialsFromEnv()
+    private var credentialsManager: CredentialsManager = P12CredentialsFromEnv()
     var errorListener = ErrorListener()
     var responseListener = ResponseListener()
 
@@ -119,19 +120,20 @@ class PushIt {
     private fun pushBlockingWithOkClient(payload: Payload): (OkHttpClient) -> Unit {
         return { okClient ->
             val stage = payload.stage
-            payload.notificationAsString { applePayload ->
-                runBlocking {
-                    withContext(Dispatchers.IO) {
-                        payload.tokens.forEach { token ->
-                            createAPNSRequest(RequestData(applePayload, token, stage))
-                                .fold(
-                                    reportRequestCreationError(),
-                                    pushAndEvalResponse(okClient)
-                                )
-                        }
+            val applePayload = payload.notificationAsString()
+
+            runBlocking {
+                withContext(Dispatchers.IO) {
+                    payload.tokens.forEach { token ->
+                        createAPNSRequest(RequestData(applePayload, token, stage))
+                            .fold(
+                                reportRequestCreationError(),
+                                pushAndEvalResponse(okClient)
+                            )
                     }
                 }
             }
+
         }
     }
 
@@ -152,8 +154,11 @@ class PushIt {
                         .toOption()
                         .map {
                             val theResponse = when (it.isSuccessful) {
-                                true -> machinehead.result.Response(it.code.toString(), it.message)
-                                false -> machinehead.result.Response(it.code.toString(), it.body?.string().orEmpty())
+                                true -> PlatformResponse(it.code.toString(), it.message)
+                                false -> PlatformResponse(
+                                    it.code.toString(),
+                                    it.body?.string().orEmpty()
+                                )
                             }
                             responseListener.report(theResponse)
                         }
@@ -162,7 +167,6 @@ class PushIt {
                     errorListener.report(ClientError("error occurred when executing request: ${e.message}"))
                 } finally {
                     response.let {
-                        println("it was successful: ${it?.isSuccessful}")
                         it?.closeQuietly()
                         it?.body?.closeQuietly()
                     }
