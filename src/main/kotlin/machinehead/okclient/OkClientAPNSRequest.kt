@@ -1,7 +1,7 @@
 package machinehead.okclient
 
 import arrow.core.Either
-import machinehead.CreateRequestError
+import machinehead.model.RequestError
 import machinehead.servers.NotificationServers
 import machinehead.servers.Stage
 import okhttp3.MediaType
@@ -14,9 +14,9 @@ class RequestData(val stringPayload: String, val token: String, val stage: Stage
 
 class OkClientAPNSRequest {
     companion object {
-        fun createAPNSRequest(requestData: RequestData): Either<CreateRequestError, Request> {
+        fun createAPNSRequest(requestData: RequestData): Either<RequestError, Request> {
             val result = Either.left(
-                CreateRequestError(
+                RequestError(
                     requestData.token,
                     "could not create request for device token"
                 )

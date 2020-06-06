@@ -1,7 +1,7 @@
 package machinehead.okclient
 
 import arrow.core.Either
-import machinehead.ClientError
+import machinehead.model.ClientError
 import machinehead.model.Payload
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient

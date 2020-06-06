@@ -4,61 +4,35 @@ import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
 import arrow.core.toOption
-import kotlinx.coroutines.*
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
-import machinehead.model.Payload
-import machinehead.model.payload
+import machinehead.model.*
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.okclient.OkClientAPNSRequest.Companion.createAPNSRequest
 import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
+import machinehead.okclient.PlatformCallback
 import machinehead.okclient.RequestData
 import machinehead.parse.ParseErrors
 import machinehead.parse.notificationAsString
-import machinehead.result.PlatformResponse
 import machinehead.servers.Stage.DEVELOPMENT
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.internal.closeQuietly
-import java.io.IOException
+import java.util.concurrent.CountDownLatch
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-class ClientError(val message: String)
-class CreateRequestError(val token: String, val message: String)
-
-class ErrorListener {
-    private val clientErrors = mutableListOf<ClientError>()
-    infix fun report(error: ClientError) {
-        clientErrors.add(error)
-    }
-
-    val hasErrors: Boolean get() = clientErrors.isNotEmpty()
-    val clientErrorsOccurred: List<ClientError> get() = clientErrors
-}
-
-class ResponseListener {
-    private val responsesList = mutableListOf<PlatformResponse>()
-
-    fun report(result: PlatformResponse) {
-        this.responsesList.add(result)
-    }
-
-    val responses get() = responsesList
-}
-
-infix fun Payload.push(errorsAndResults: (Pair<List<ClientError>, List<PlatformResponse>>) -> Unit) {
+infix fun Payload.push(errorsAndResults: (ResponsesAndErrors) -> Unit) {
     val pushIt = PushIt()
     pushIt.with(this)
-    errorsAndResults(Pair(pushIt.errorListener.clientErrorsOccurred, pushIt.responseListener.responses))
+    //errorsAndResults(Pair(pushIt.errorListener.clientErrors, pushIt.platformResponseListener.platformResponses))
 }
 
 class PushIt {
-    private var credentialsManager: CredentialsManager = P12CredentialsFromEnv()
-    var errorListener = ErrorListener()
-    var responseListener = ResponseListener()
+    private var credentialsManager = P12CredentialsFromEnv()
+
+    private var errorListener = ClientErrorListener()
+    var requestListener = RequestErrorListener()
+    var platformResponseListener = PlatformResponseListener()
 
 
     private val errorMessages: ParseErrors
@@ -122,56 +96,24 @@ class PushIt {
             val stage = payload.stage
             val applePayload = payload.notificationAsString()
 
-            runBlocking {
-                withContext(Dispatchers.IO) {
-                    payload.tokens.forEach { token ->
-                        createAPNSRequest(RequestData(applePayload, token, stage))
-                            .fold(
-                                reportRequestCreationError(),
-                                pushAndEvalResponse(okClient)
-                            )
-                    }
-                }
+            val countDownLatch = CountDownLatch(payload.tokens.size)
+            val callBacks = mutableListOf<PlatformCallback>()
+
+            payload.tokens.forEach { token ->
+                createAPNSRequest(RequestData(applePayload, token, stage))
+                    .fold({
+                        countDownLatch.countDown()
+                    },
+                        { request ->
+                            val responseCallback = PlatformCallback(token, countDownLatch)
+                            okClient.newCall(request).enqueue(responseCallback)
+                            callBacks.add(responseCallback)
+                        })
             }
 
-        }
-    }
-
-    private fun reportRequestCreationError(): (CreateRequestError) -> Unit {
-        return {
-            //TODO(Implement create request error)
-        }
-    }
-
-    private fun CoroutineScope.pushAndEvalResponse(okClient: OkHttpClient): (Request) -> Unit {
-        return { request ->
-            launch {
-                var response: Response? = null
-                try {
-                    response = okClient.newCall(request).execute()
-                    println(response)
-                    response
-                        .toOption()
-                        .map {
-                            val theResponse = when (it.isSuccessful) {
-                                true -> PlatformResponse(it.code.toString(), it.message)
-                                false -> PlatformResponse(
-                                    it.code.toString(),
-                                    it.body?.string().orEmpty()
-                                )
-                            }
-                            responseListener.report(theResponse)
-                        }
-                } catch (e: IOException) {
-                    println("could not execute request for request: $request")
-                    errorListener.report(ClientError("error occurred when executing request: ${e.message}"))
-                } finally {
-                    response.let {
-                        it?.closeQuietly()
-                        it?.body?.closeQuietly()
-                    }
-                }
-            }
+            countDownLatch.await()
+            println("after count down latch await()")
+            TODO("have to prepare report")
         }
     }
 
@@ -210,9 +152,9 @@ fun main() {
             "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55",
             "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54"
         )
-    } push { errorsAndResults ->
-        println("the errors: ${errorsAndResults.first}")
-        println("the results: ${errorsAndResults.second}")
+    } push { errorAndResponses ->
+        //println("the errors: ${errorsAndResults.first}")
+        //println("the results: ${errorsAndResults.second}")
     }
 
     println("#################################################")
@@ -243,8 +185,8 @@ fun main() {
             "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54",
             "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55"
         )
-    } push { errorsAndResults ->
-        println("the second errors: ${errorsAndResults.first}")
-        println("the second results: ${errorsAndResults.second}")
+    } push { errorAndResponses ->
+        //println("the second errors: ${errorsAndResults.first}")
+        //println("the second results: ${errorsAndResults.second}")
     }
 }
