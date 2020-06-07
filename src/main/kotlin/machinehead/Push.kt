@@ -16,25 +16,33 @@ import machinehead.okclient.RequestData
 import machinehead.parse.ParseErrors
 import machinehead.parse.notificationAsString
 import machinehead.servers.Stage.DEVELOPMENT
+import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import java.util.concurrent.CountDownLatch
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-infix fun Payload.push(errorsAndResults: (ResponsesAndErrors) -> Unit) {
+infix fun Payload.push(report: (ResponsesAndErrors) -> Unit) {
+    val logger = KotlinLogging.logger {}
+
     val pushIt = PushIt()
+    logger.info { "will begin to prepare push" }
+
     pushIt.with(this)
 
-    errorsAndResults(
-        ResponsesAndErrors(
-            pushIt.clientErrorListener.clientErrors,
-            pushIt.requestErrorListener.requestErrors,
-            pushIt.platformResponseListener.platformResponses
-        )
+    val responsesAndErrors = ResponsesAndErrors(
+        pushIt.clientErrorListener.clientErrors,
+        pushIt.requestErrorListener.requestErrors,
+        pushIt.platformResponseListener.platformResponses
     )
+    logger.debug { "report responses and errors $responsesAndErrors" }
+    report(responsesAndErrors)
 }
 
 class PushIt {
+
+    val logger = KotlinLogging.logger {}
+
     private var credentialsManager = P12CredentialsFromEnv()
 
     var clientErrorListener = ClientErrorListener()
@@ -90,6 +98,7 @@ class PushIt {
 
     private fun createOkClientAndPush(payload: Payload): (Pair<SSLSocketFactory, X509TrustManager>) -> Unit {
         return { socketFactoryAndTrustManager ->
+            logger.debug { "will create ok client with socket factory and trust manager" }
             createOkClient(payload, socketFactoryAndTrustManager)
                 .fold(
                     reportError(),
@@ -103,23 +112,30 @@ class PushIt {
             val stage = payload.stage
             val applePayload = payload.notificationAsString()
 
+            logger.debug { "the string representation of the payload will be push: $applePayload" }
+
             val countDownLatch = CountDownLatch(payload.tokens.size)
+            logger.debug { "the payload will be pushed to total of ${payload.tokens.size} clients" }
             val callBacks = mutableListOf<PlatformCallback>()
 
             payload.tokens.forEach { token ->
                 createAPNSRequest(RequestData(applePayload, token, stage))
                     .fold({
+                        logger.error { "could not create request for the token: $token with the error: ${it.message}" }
+                        requestErrorListener.report(Some(it))
                         countDownLatch.countDown()
                     },
                         { request ->
+                            logger.info { "will push the payload: $applePayload to device with token: $token" }
                             val responseCallback = PlatformCallback(token, countDownLatch)
                             okClient.newCall(request).enqueue(responseCallback)
                             callBacks.add(responseCallback)
                         })
             }
-
+            logger.debug { "will wait for all platform callbacks to report being done" }
             countDownLatch.await()
-            println("after count down latch await()")
+            logger.debug { "waiting for all platform callbacks is done" }
+
             callBacks.forEach { callBack ->
                 platformResponseListener.report(callBack.platformResponse)
                 requestErrorListener.report(callBack.requestError)
@@ -129,12 +145,14 @@ class PushIt {
 
     private fun reportError(): (ClientError) -> Unit {
         return {
+            logger.error { it.message }
             this.clientErrorListener report it
         }
     }
 
     private fun reportCredentialsManagerError(): () -> Unit {
         return {
+            logger.error { "the default credential manager was replaced with null" }
             clientErrorListener report ClientError(errorMessages.noCredentialsManager.orEmpty())
         }
     }
