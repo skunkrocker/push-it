@@ -11,11 +11,11 @@ sealed class NotificationServers {
         private const val PRODUCTION = "https://api.push.apple.com:2197"
         private const val DEVELOPMENT = "https://api.development.push.apple.com:2197"
 
-        fun urlFor(stage: Stage?, deviceToken: String?, forUrl: (String) -> Unit) {
-            when (stage) {
-                Stage.PRODUCTION -> forUrl(PRODUCTION + DEVICE_PATH + deviceToken)
-                Stage.DEVELOPMENT -> forUrl(DEVELOPMENT + DEVICE_PATH + deviceToken)
+        fun forUrl(stage: Stage?, deviceToken: String?): String {
+            if (stage == Stage.PRODUCTION) {
+                return PRODUCTION + DEVICE_PATH + deviceToken
             }
+            return DEVELOPMENT + DEVICE_PATH + deviceToken
         }
     }
 }
