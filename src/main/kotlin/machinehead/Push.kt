@@ -41,7 +41,7 @@ infix fun Payload.push(report: (ResponsesAndErrors) -> Unit) {
 
 class PushIt {
 
-    val logger = KotlinLogging.logger {}
+    private val logger = KotlinLogging.logger {}
 
     private var credentialsManager = P12CredentialsFromEnv()
 
@@ -102,12 +102,12 @@ class PushIt {
             createOkClient(payload, socketFactoryAndTrustManager)
                 .fold(
                     reportError(),
-                    pushBlockingWithOkClient(payload)
+                    pushAsyncAndWaitToFinish(payload)
                 )
         }
     }
 
-    private fun pushBlockingWithOkClient(payload: Payload): (OkHttpClient) -> Unit {
+    private fun pushAsyncAndWaitToFinish(payload: Payload): (OkHttpClient) -> Unit {
         return { okClient ->
             val stage = payload.stage
             val applePayload = payload.notificationAsString()
