@@ -24,14 +24,21 @@ import javax.net.ssl.X509TrustManager
 infix fun Payload.push(errorsAndResults: (ResponsesAndErrors) -> Unit) {
     val pushIt = PushIt()
     pushIt.with(this)
-    //errorsAndResults(Pair(pushIt.errorListener.clientErrors, pushIt.platformResponseListener.platformResponses))
+
+    errorsAndResults(
+        ResponsesAndErrors(
+            pushIt.clientErrorListener.clientErrors,
+            pushIt.requestErrorListener.requestErrors,
+            pushIt.platformResponseListener.platformResponses
+        )
+    )
 }
 
 class PushIt {
     private var credentialsManager = P12CredentialsFromEnv()
 
-    private var errorListener = ClientErrorListener()
-    var requestListener = RequestErrorListener()
+    var clientErrorListener = ClientErrorListener()
+    var requestErrorListener = RequestErrorListener()
     var platformResponseListener = PlatformResponseListener()
 
 
@@ -113,19 +120,22 @@ class PushIt {
 
             countDownLatch.await()
             println("after count down latch await()")
-            TODO("have to prepare report")
+            callBacks.forEach { callBack ->
+                platformResponseListener.report(callBack.platformResponse)
+                requestErrorListener.report(callBack.requestError)
+            }
         }
     }
 
     private fun reportError(): (ClientError) -> Unit {
         return {
-            this.errorListener report it
+            this.clientErrorListener report it
         }
     }
 
     private fun reportCredentialsManagerError(): () -> Unit {
         return {
-            errorListener report ClientError(errorMessages.noCredentialsManager.orEmpty())
+            clientErrorListener report ClientError(errorMessages.noCredentialsManager.orEmpty())
         }
     }
 }
@@ -153,8 +163,9 @@ fun main() {
             "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54"
         )
     } push { errorAndResponses ->
-        //println("the errors: ${errorsAndResults.first}")
-        //println("the results: ${errorsAndResults.second}")
+        println("the errors: ${errorAndResponses.clientErrors}")
+        println("the request errors: ${errorAndResponses.requestErrors}")
+        println("the platform responses: ${errorAndResponses.platformResponses}")
     }
 
     println("#################################################")
@@ -186,7 +197,8 @@ fun main() {
             "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55"
         )
     } push { errorAndResponses ->
-        //println("the second errors: ${errorsAndResults.first}")
-        //println("the second results: ${errorsAndResults.second}")
+        println("the second errors: ${errorAndResponses.clientErrors}")
+        println("the second request errors: ${errorAndResponses.requestErrors}")
+        println("the second platform responses: ${errorAndResponses.platformResponses}")
     }
 }
