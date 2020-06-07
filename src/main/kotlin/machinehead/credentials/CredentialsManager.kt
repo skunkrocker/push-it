@@ -1,9 +1,7 @@
 package machinehead.credentials
 
 import arrow.core.Either
-import machinehead.ClientError
-import machinehead.result.PushResult
-import machinehead.result.Response
+import machinehead.model.ClientError
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.SecureRandom

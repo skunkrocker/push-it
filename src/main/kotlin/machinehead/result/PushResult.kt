@@ -1,5 +1,5 @@
 package machinehead.result
 
+import machinehead.model.PlatformResponse
 
-data class Response(val status: String, val message: String)
-data class PushResult(val responses: HashMap<String, Response?>)
+data class PushResult(val responses: HashMap<String, PlatformResponse?>)
