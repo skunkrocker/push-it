@@ -137,7 +137,7 @@ class PushIt {
             logger.debug { "waiting for all platform callbacks is done" }
 
             callBacks.forEach { callBack ->
-                platformResponseListener.report(callBack.platformResponse)
+                platformResponseListener.report(callBack.response)
                 requestErrorListener.report(callBack.requestError)
             }
         }
@@ -183,7 +183,7 @@ fun main() {
     } push { errorAndResponses ->
         println("the errors: ${errorAndResponses.clientErrors}")
         println("the request errors: ${errorAndResponses.requestErrors}")
-        println("the platform responses: ${errorAndResponses.platformResponses}")
+        println("the platform responses: ${errorAndResponses.responses}")
     }
 
     println("#################################################")
@@ -217,6 +217,6 @@ fun main() {
     } push { errorAndResponses ->
         println("the second errors: ${errorAndResponses.clientErrors}")
         println("the second request errors: ${errorAndResponses.requestErrors}")
-        println("the second platform responses: ${errorAndResponses.platformResponses}")
+        println("the second platform responses: ${errorAndResponses.responses}")
     }
 }
