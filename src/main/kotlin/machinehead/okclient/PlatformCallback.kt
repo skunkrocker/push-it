@@ -3,9 +3,10 @@ package machinehead.okclient
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
-import machinehead.model.PushResult
 import machinehead.model.PlatformResponse
+import machinehead.model.PushResult
 import machinehead.model.RequestError
+import mu.KotlinLogging
 import okhttp3.Call
 import okhttp3.Callback
 import okhttp3.Response
@@ -13,38 +14,41 @@ import java.io.IOException
 import java.util.concurrent.CountDownLatch
 
 class PlatformCallback(private val token: String, private val countDownLatch: CountDownLatch) : Callback {
-
+    private val logger = KotlinLogging.logger {}
     lateinit var response: Option<PushResult>
     var requestError: Option<RequestError> = None
 
     override fun onFailure(call: Call, e: IOException) {
-        println(e)
-
+        logger.error { e }
         requestError =
             Some(RequestError(token, message = "failed to execute request with exception ${e.message}"))
-
         countDownLatch.countDown()
+        logger.debug { "count down latch called" }
     }
 
     override fun onResponse(call: Call, response: Response) {
-        println(response)
+        logger.debug { "response received for $token" }
         try {
             val pushResponse = when (response.isSuccessful) {
-                true -> PlatformResponse(response.code.toString(), response.message)
+                true -> PlatformResponse(
+                    response.code.toString(),
+                    response.message
+                )
                 false -> PlatformResponse(
                     response.code.toString(),
                     response.body?.string().orEmpty()
                 )
             }
-            println(pushResponse)
+            logger.debug { "the push response: $pushResponse for token: $token received" }
             this.response = Some(PushResult(token, pushResponse))
 
         } catch (e: IOException) {
-            println("could not execute request for request: $response")
+            logger.error { "could not execute request for token $token . error was: $e" }
             this.response = None
         } finally {
             response.close()
         }
         countDownLatch.countDown()
+        logger.debug { "count down latch called" }
     }
 }

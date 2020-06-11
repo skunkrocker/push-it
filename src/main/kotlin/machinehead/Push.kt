@@ -1,7 +1,5 @@
 package machinehead
 
-import arrow.core.None
-import arrow.core.Option
 import arrow.core.Some
 import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
@@ -11,6 +9,8 @@ import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.okclient.OkClientAPNSRequest.Companion.createAPNSRequest
 import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
+import machinehead.okclient.OkClientWithCredentials.Companion.releaseResources
+import machinehead.okclient.PayloadValidator.Companion.validate
 import machinehead.okclient.PlatformCallback
 import machinehead.okclient.RequestData
 import machinehead.parse.ParseErrors
@@ -19,6 +19,7 @@ import machinehead.servers.Stage.DEVELOPMENT
 import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
@@ -43,7 +44,7 @@ class PushIt {
 
     private val logger = KotlinLogging.logger {}
 
-    private var credentialsManager = P12CredentialsFromEnv()
+    var credentialsManager = P12CredentialsFromEnv()
 
     var clientErrorListener = ClientErrorListener()
     var requestErrorListener = RequestErrorListener()
@@ -59,20 +60,6 @@ class PushIt {
                 push(payload),
                 reportError()
             )
-    }
-
-    private fun validate(payload: Payload): Option<ClientError> {
-        if (payload.tokens.isEmpty()) {
-            return Some(ClientError(errorMessages.noTokens.orEmpty()))
-        }
-        if (payload.notification?.aps?.alert == null) {
-            return Some(ClientError(errorMessages.noAlert.orEmpty()))
-        }
-
-        if (payload.headers.isEmpty()) {
-            return Some(ClientError(errorMessages.noTopic.orEmpty()))
-        }
-        return None
     }
 
     private fun push(payload: Payload): () -> Unit {
@@ -133,8 +120,10 @@ class PushIt {
                         })
             }
             logger.debug { "will wait for all platform callbacks to report being done" }
-            countDownLatch.await()
+            countDownLatch.await(45, TimeUnit.SECONDS)
             logger.debug { "waiting for all platform callbacks is done" }
+
+            releaseResources(okClient)
 
             callBacks.forEach { callBack ->
                 platformResponseListener.report(callBack.response)
@@ -185,7 +174,7 @@ fun main() {
         println("the request errors: ${errorAndResponses.requestErrors}")
         println("the platform responses: ${errorAndResponses.responses}")
     }
-
+    /*
     println("#################################################")
     println("#                                               #")
     println("#        next comes the second call             #")
@@ -219,4 +208,6 @@ fun main() {
         println("the second request errors: ${errorAndResponses.requestErrors}")
         println("the second platform responses: ${errorAndResponses.responses}")
     }
+    */
+    //System.exit(1)
 }

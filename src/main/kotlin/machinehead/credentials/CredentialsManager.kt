@@ -2,6 +2,7 @@ package machinehead.credentials
 
 import arrow.core.Either
 import machinehead.model.ClientError
+import mu.KotlinLogging
 import java.security.KeyStore
 import java.security.KeyStoreException
 import java.security.SecureRandom
@@ -13,7 +14,11 @@ interface CredentialsManager {
 }
 
 class P12CredentialsFromEnv : CredentialsManager {
+
+    private val logger = KotlinLogging.logger {}
+
     override fun credentials(): Either<ClientError, Pair<SSLSocketFactory, X509TrustManager>> {
+
         var result: Either<ClientError, Pair<SSLSocketFactory, X509TrustManager>> =
             Either.left(ClientError("could not compute credentials"))
         readFromEnv({ certificate, password ->
@@ -83,7 +88,7 @@ class P12CredentialsFromEnv : CredentialsManager {
             return Pair(socketFactory, trustManager)
 
         } catch (e: Exception) {
-            println("Could not create ssl factory and trust manager for the provided env credentials. Exception was: $e")
+            logger.error("Could not create ssl factory and trust manager for the provided env credentials. Exception was: $e")
         }
         return Pair(null, null)
     }

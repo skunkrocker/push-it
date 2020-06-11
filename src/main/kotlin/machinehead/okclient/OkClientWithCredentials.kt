@@ -3,6 +3,7 @@ package machinehead.okclient
 import arrow.core.Either
 import machinehead.model.ClientError
 import machinehead.model.Payload
+import mu.KotlinLogging
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -12,18 +13,26 @@ import javax.net.ssl.X509TrustManager
 
 class OkClientWithCredentials {
     companion object {
+        private val logger = KotlinLogging.logger { }
         fun createOkClient(
             payload: Payload,
             credentials: Pair<SSLSocketFactory, X509TrustManager>
         ): Either<ClientError, OkHttpClient> {
             try {
                 val okClientBuilder = OkHttpClient().newBuilder()
+                logger.debug { "ok client builder created" }
+
                 okClientBuilder.sslSocketFactory(credentials.first, credentials.second)
+                logger.debug { "added ssl factory and trust manager to the ok client builder" }
+
                 okClientBuilder.addInterceptor(addHeadersToCurrentRequest(payload))
+                logger.debug { "ok client builder added request interceptor for headers" }
+
                 val okClient = okClientBuilder.build()
+                logger.debug { "ok client was built and will be returned" }
                 return Either.right(okClient)
             } catch (e: Exception) {
-                println("Could not create ok client")
+                logger.error { "Could not create ok client. exception occurred: $e" }
             }
             return Either.left(ClientError("could not create http client"))
         }
@@ -42,6 +51,19 @@ class OkClientWithCredentials {
                     .build()
 
                 chain.proceed(request)
+            }
+        }
+
+        fun releaseResources(okClient: OkHttpClient) {
+            val queuedCallsCount = okClient.dispatcher.queuedCallsCount()
+            val runningCallsCount = okClient.dispatcher.runningCallsCount()
+            if (queuedCallsCount == 0 && runningCallsCount == 0) {
+                okClient.dispatcher.executorService.shutdownNow()
+                logger.debug { "ok client executor service shutting down" }
+                okClient.connectionPool.evictAll()
+                logger.debug { "ok client evict all from connection pool" }
+                okClient.cache?.close()
+                logger.debug { "ok client clean cache" }
             }
         }
     }
