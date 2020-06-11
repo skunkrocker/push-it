@@ -148,39 +148,15 @@ class PushIt {
 }
 
 fun main() {
-    payload {
-        notification {
-            aps {
-                alert {
-                    body = "Hello"
-                    subtitle = "Subtitle"
-                }
-            }
-        }
-        headers = hashMapOf(
-            "apns-topic" to "ch.sbb.ios.pushnext"
-        )
-        custom = hashMapOf(
-            "custom-property" to "hello custom",
-            "blow-up" to true
-        )
-        stage = DEVELOPMENT
-        tokens = arrayListOf(
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55",
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54"
-        )
-    } push { errorAndResponses ->
-        println("the errors: ${errorAndResponses.clientErrors}")
-        println("the request errors: ${errorAndResponses.requestErrors}")
-        println("the platform responses: ${errorAndResponses.responses}")
-    }
-    /*
-    println("#################################################")
-    println("#                                               #")
-    println("#        next comes the second call             #")
-    println("#                                               #")
-    println("#################################################")
+    val logger = KotlinLogging.logger { }
 
+    val theTokens = mutableListOf<String>()
+    repeat(2) {
+        if (it % 2 == 0)
+            theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
+        else
+            theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54")
+    }
 
     payload {
         notification {
@@ -199,15 +175,12 @@ fun main() {
             "blow-up" to true
         )
         stage = DEVELOPMENT
-        tokens = arrayListOf(
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54",
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55"
-        )
+        tokens = theTokens
+
     } push { errorAndResponses ->
-        println("the second errors: ${errorAndResponses.clientErrors}")
-        println("the second request errors: ${errorAndResponses.requestErrors}")
-        println("the second platform responses: ${errorAndResponses.responses}")
+        logger.info { "the errors: ${errorAndResponses.clientErrors}" }
+        logger.info { "the request errors: ${errorAndResponses.requestErrors}" }
+        logger.info { "THE RESPONSES COUNT: ${errorAndResponses.responses.size}" }
+        logger.info { "the platform responses: ${errorAndResponses.responses}" }
     }
-    */
-    //System.exit(1)
 }

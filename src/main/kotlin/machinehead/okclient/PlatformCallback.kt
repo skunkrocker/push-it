@@ -15,7 +15,7 @@ import java.util.concurrent.CountDownLatch
 
 class PlatformCallback(private val token: String, private val countDownLatch: CountDownLatch) : Callback {
     private val logger = KotlinLogging.logger {}
-    lateinit var response: Option<PushResult>
+    var response: Option<PushResult> = None
     var requestError: Option<RequestError> = None
 
     override fun onFailure(call: Call, e: IOException) {

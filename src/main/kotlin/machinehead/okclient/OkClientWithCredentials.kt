@@ -55,9 +55,8 @@ class OkClientWithCredentials {
         }
 
         fun releaseResources(okClient: OkHttpClient) {
-            val queuedCallsCount = okClient.dispatcher.queuedCallsCount()
-            val runningCallsCount = okClient.dispatcher.runningCallsCount()
-            if (queuedCallsCount == 0 && runningCallsCount == 0) {
+            val dispatcher = okClient.dispatcher
+            if (dispatcher.queuedCallsCount() == 0 && dispatcher.runningCallsCount() == 0) {
                 okClient.dispatcher.executorService.shutdownNow()
                 logger.debug { "ok client executor service shutting down" }
                 okClient.connectionPool.evictAll()
