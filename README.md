@@ -65,3 +65,17 @@ PushIt.with(payload)
     }
 }
 ```
+####Testing
+The Push It client is tested with the help of ```MockWebServer```.
+To achieve this, the ```localhost.url``` is setting the ```MockWebServer``` url 
+to intercept the `OkHttpClient` calls. 
+For the tests to run, you need a valid p12 Certificate in your environment variables 
+and to make sure that the ```MockWebServer``` is using the *localhost*.
+On a MacBook there is a problem with the ``MockWebServer`` cause the local host url
+incorporates the user name into the local host.
+
+If that is so, you have to add this to your hosts file as follow:
+- ``sudo vi /private/etc/hosts``
+-  right after `127.0.0.1	localhost` add a new line
+-  ``127.0.0.1	username-macbook-pro.local`` or what ever the test is telling your local host is
+

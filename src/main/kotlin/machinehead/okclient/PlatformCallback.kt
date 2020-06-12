@@ -15,6 +15,7 @@ import java.util.concurrent.CountDownLatch
 
 class PlatformCallback(private val token: String, private val countDownLatch: CountDownLatch) : Callback {
     private val logger = KotlinLogging.logger {}
+
     var response: Option<PushResult> = None
     var requestError: Option<RequestError> = None
 
@@ -24,21 +25,6 @@ class PlatformCallback(private val token: String, private val countDownLatch: Co
             Some(RequestError(token, message = "failed to execute request with exception ${e.message}"))
         countDownLatch.countDown()
         logger.debug { "count down latch called" }
-    }
-
-    fun getSuccessMessage(response: Response): String {
-        val body = response.body?.string().orEmpty()
-        if (body.isNotEmpty()) {
-            return body
-        }
-        return getJson("success.json")
-    }
-
-    fun getJson(path: String): String {
-        val classLoader = this.javaClass.classLoader
-        val uri = classLoader.getResource(path)
-        val file = java.io.File(uri!!.path)
-        return kotlin.text.String(file.readBytes(), kotlin.text.Charsets.UTF_8)
     }
 
     override fun onResponse(call: Call, response: Response) {
@@ -65,5 +51,20 @@ class PlatformCallback(private val token: String, private val countDownLatch: Co
         }
         countDownLatch.countDown()
         logger.debug { "count down latch called" }
+    }
+
+    private fun getSuccessMessage(response: Response): String {
+        val body = response.body?.string().orEmpty()
+        if (body.isNotEmpty()) {
+            return body
+        }
+        return getJson("success.json")
+    }
+
+    private fun getJson(path: String): String {
+        val classLoader = this.javaClass.classLoader
+        val uri = classLoader.getResource(path)
+        val file = java.io.File(uri!!.path)
+        return kotlin.text.String(file.readBytes(), kotlin.text.Charsets.UTF_8)
     }
 }

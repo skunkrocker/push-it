@@ -5,6 +5,7 @@ import com.squareup.okhttp.mockwebserver.MockWebServer
 import machinehead.PushIt
 import machinehead.model.Payload
 import machinehead.model.payload
+import machinehead.okclient.OkClientAPNSRequest.Companion.TEST_URL_PROPERTY
 import machinehead.push.TestData.Companion.TOKEN
 import machinehead.servers.Stage
 import mu.KotlinLogging
@@ -30,7 +31,8 @@ class PushNetworkingTest {
         mockWebServer.play()
 
         val url = mockWebServer.getUrl("")
-        System.setProperty("localhost.url", url.toString())
+        logger.warn { "during the test, the url will be used for MocWebServer to run properly: $url" }
+        System.setProperty(TEST_URL_PROPERTY, url.toString())
     }
 
     @Test
