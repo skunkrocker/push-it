@@ -65,9 +65,9 @@ PushIt.with(payload)
     }
 }
 ```
-####Testing
+#### Testing
 The Push It client is tested with the help of ```MockWebServer```.
-To achieve this, the ```localhost.url``` is setting the ```MockWebServer``` url 
+To achieve this, the property ```localhost.url``` is setting the ```MockWebServer``` url 
 to intercept the `OkHttpClient` calls. 
 For the tests to run, you need a valid p12 Certificate in your environment variables 
 and to make sure that the ```MockWebServer``` is using the *localhost*.
