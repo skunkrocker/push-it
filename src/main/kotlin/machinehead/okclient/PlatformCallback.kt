@@ -26,13 +26,28 @@ class PlatformCallback(private val token: String, private val countDownLatch: Co
         logger.debug { "count down latch called" }
     }
 
+    fun getSuccessMessage(response: Response): String {
+        val body = response.body?.string().orEmpty()
+        if (body.isNotEmpty()) {
+            return body
+        }
+        return getJson("success.json")
+    }
+
+    fun getJson(path: String): String {
+        val classLoader = this.javaClass.classLoader
+        val uri = classLoader.getResource(path)
+        val file = java.io.File(uri!!.path)
+        return kotlin.text.String(file.readBytes(), kotlin.text.Charsets.UTF_8)
+    }
+
     override fun onResponse(call: Call, response: Response) {
         logger.debug { "response received for $token" }
         try {
             val pushResponse = when (response.isSuccessful) {
                 true -> PlatformResponse(
                     response.code.toString(),
-                    response.message
+                    getSuccessMessage(response)
                 )
                 false -> PlatformResponse(
                     response.code.toString(),

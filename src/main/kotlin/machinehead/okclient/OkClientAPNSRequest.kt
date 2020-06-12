@@ -23,8 +23,15 @@ class OkClientAPNSRequest {
                     "could not create request for device token: ${requestData.token}"
                 )
             )
+            var url = NotificationServers.forUrl(requestData.stage, requestData.token)
 
-            val url = NotificationServers.forUrl(requestData.stage, requestData.token)
+            System.getProperty("localhost.url").let {
+                if (it != null) {
+                    url = NotificationServers.forUrl(Stage.TEST, requestData.token)
+                    logger.warn { "you overwrite the APNS  url to: $url " }
+                    logger.warn { "if you didn't do this for test purposes, please remove the property 'localhost.url' from your ENV" }
+                }
+            }
             logger.debug { "the final request end point url: $url" }
 
             try {
