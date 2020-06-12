@@ -21,15 +21,12 @@ payload {
         )
     stage = DEVELOPMENT
     tokens = arrayListOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
-} push { resultEither ->
-        resultEither
-            .fold({ clientError ->
-                println(clientError.message)
-            }, { platformResponse ->
-                println("$platformResponse.status, $platformResponse.message")
-            })
-    }
-}
+} push { errorAndResponses ->
+          logger.info { "the errors: ${errorAndResponses.clientErrors}" }
+          logger.info { "the request errors: ${errorAndResponses.requestErrors}" }
+          logger.info { "THE RESPONSES COUNT: ${errorAndResponses.responses.size}" }
+          logger.info { "the platform responses: ${errorAndResponses.responses}" }
+ }
 ```
 
 ```ruby
@@ -55,14 +52,11 @@ payload {
 }
 
 PushIt.with(payload)
-{ resultEither ->
-        resultEither
-            .fold({ clientError ->
-                println(clientError.message)
-            }, { platformResponse ->
-                println("${platformResponse.status} : ${platformResponse.message}")
-            })
-    }
+{ errorAndResponses ->
+        logger.info { "the errors: ${errorAndResponses.clientErrors}" }
+        logger.info { "the request errors: ${errorAndResponses.requestErrors}" }
+        logger.info { "THE RESPONSES COUNT: ${errorAndResponses.responses.size}" }
+        logger.info { "the platform responses: ${errorAndResponses.responses}" }
 }
 ```
 #### Testing
