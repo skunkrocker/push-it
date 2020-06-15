@@ -1,7 +1,5 @@
 package machinehead
 
-import arrow.core.None
-import arrow.core.Option
 import arrow.core.Some
 import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
@@ -11,31 +9,42 @@ import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.okclient.OkClientAPNSRequest.Companion.createAPNSRequest
 import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
+import machinehead.okclient.OkClientWithCredentials.Companion.releaseResources
+import machinehead.okclient.PayloadValidator.Companion.validate
 import machinehead.okclient.PlatformCallback
 import machinehead.okclient.RequestData
 import machinehead.parse.ParseErrors
 import machinehead.parse.notificationAsString
 import machinehead.servers.Stage.DEVELOPMENT
+import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-infix fun Payload.push(errorsAndResults: (ResponsesAndErrors) -> Unit) {
+infix fun Payload.push(report: (ResponsesAndErrors) -> Unit) {
+    val logger = KotlinLogging.logger {}
+
     val pushIt = PushIt()
+    logger.info { "will begin to prepare push" }
+
     pushIt.with(this)
 
-    errorsAndResults(
-        ResponsesAndErrors(
-            pushIt.clientErrorListener.clientErrors,
-            pushIt.requestErrorListener.requestErrors,
-            pushIt.platformResponseListener.platformResponses
-        )
+    val responsesAndErrors = ResponsesAndErrors(
+        pushIt.clientErrorListener.clientErrors,
+        pushIt.requestErrorListener.requestErrors,
+        pushIt.platformResponseListener.platformResponses
     )
+    logger.debug { "report responses and errors $responsesAndErrors" }
+    report(responsesAndErrors)
 }
 
 class PushIt {
-    private var credentialsManager = P12CredentialsFromEnv()
+
+    private val logger = KotlinLogging.logger {}
+
+    var credentialsManager = P12CredentialsFromEnv()
 
     var clientErrorListener = ClientErrorListener()
     var requestErrorListener = RequestErrorListener()
@@ -51,20 +60,6 @@ class PushIt {
                 push(payload),
                 reportError()
             )
-    }
-
-    private fun validate(payload: Payload): Option<ClientError> {
-        if (payload.tokens.isEmpty()) {
-            return Some(ClientError(errorMessages.noTokens.orEmpty()))
-        }
-        if (payload.notification?.aps?.alert == null) {
-            return Some(ClientError(errorMessages.noAlert.orEmpty()))
-        }
-
-        if (payload.headers.isEmpty()) {
-            return Some(ClientError(errorMessages.noTopic.orEmpty()))
-        }
-        return None
     }
 
     private fun push(payload: Payload): () -> Unit {
@@ -90,38 +85,48 @@ class PushIt {
 
     private fun createOkClientAndPush(payload: Payload): (Pair<SSLSocketFactory, X509TrustManager>) -> Unit {
         return { socketFactoryAndTrustManager ->
+            logger.debug { "will create ok client with socket factory and trust manager" }
             createOkClient(payload, socketFactoryAndTrustManager)
                 .fold(
                     reportError(),
-                    pushBlockingWithOkClient(payload)
+                    pushAsyncAndWaitToFinish(payload)
                 )
         }
     }
 
-    private fun pushBlockingWithOkClient(payload: Payload): (OkHttpClient) -> Unit {
+    private fun pushAsyncAndWaitToFinish(payload: Payload): (OkHttpClient) -> Unit {
         return { okClient ->
             val stage = payload.stage
             val applePayload = payload.notificationAsString()
 
+            logger.debug { "the string representation of the payload will be push: $applePayload" }
+
             val countDownLatch = CountDownLatch(payload.tokens.size)
+            logger.debug { "the payload will be pushed to total of ${payload.tokens.size} clients" }
             val callBacks = mutableListOf<PlatformCallback>()
 
             payload.tokens.forEach { token ->
                 createAPNSRequest(RequestData(applePayload, token, stage))
                     .fold({
+                        logger.error { "could not create request for the token: $token with the error: ${it.message}" }
+                        requestErrorListener.report(Some(it))
                         countDownLatch.countDown()
                     },
                         { request ->
+                            logger.info { "will push the payload: $applePayload to device with token: $token" }
                             val responseCallback = PlatformCallback(token, countDownLatch)
                             okClient.newCall(request).enqueue(responseCallback)
                             callBacks.add(responseCallback)
                         })
             }
+            logger.debug { "will wait for all platform callbacks to report being done" }
+            countDownLatch.await(45, TimeUnit.SECONDS)
+            logger.debug { "waiting for all platform callbacks is done" }
 
-            countDownLatch.await()
-            println("after count down latch await()")
+            releaseResources(okClient)
+
             callBacks.forEach { callBack ->
-                platformResponseListener.report(callBack.platformResponse)
+                platformResponseListener.report(callBack.response)
                 requestErrorListener.report(callBack.requestError)
             }
         }
@@ -129,52 +134,30 @@ class PushIt {
 
     private fun reportError(): (ClientError) -> Unit {
         return {
+            logger.error { it.message }
             this.clientErrorListener report it
         }
     }
 
     private fun reportCredentialsManagerError(): () -> Unit {
         return {
+            logger.error { "the default credential manager was replaced with null" }
             clientErrorListener report ClientError(errorMessages.noCredentialsManager.orEmpty())
         }
     }
 }
 
 fun main() {
-    payload {
-        notification {
-            aps {
-                alert {
-                    body = "Hello"
-                    subtitle = "Subtitle"
-                }
-            }
-        }
-        headers = hashMapOf(
-            "apns-topic" to "ch.sbb.ios.pushnext"
-        )
-        custom = hashMapOf(
-            "custom-property" to "hello custom",
-            "blow-up" to true
-        )
-        stage = DEVELOPMENT
-        tokens = arrayListOf(
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55",
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54"
-        )
-    } push { errorAndResponses ->
-        println("the errors: ${errorAndResponses.clientErrors}")
-        println("the request errors: ${errorAndResponses.requestErrors}")
-        println("the platform responses: ${errorAndResponses.platformResponses}")
+    val logger = KotlinLogging.logger { }
+
+    val theTokens = mutableListOf<String>()
+    repeat(2) {
+        if (it % 2 == 0)
+            theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
+        else
+            theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54")
     }
 
-    println("#################################################")
-    println("#                                               #")
-    println("#        next comes the second call             #")
-    println("#                                               #")
-    println("#################################################")
-
-
     payload {
         notification {
             aps {
@@ -192,13 +175,12 @@ fun main() {
             "blow-up" to true
         )
         stage = DEVELOPMENT
-        tokens = arrayListOf(
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54",
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55"
-        )
+        tokens = theTokens
+
     } push { errorAndResponses ->
-        println("the second errors: ${errorAndResponses.clientErrors}")
-        println("the second request errors: ${errorAndResponses.requestErrors}")
-        println("the second platform responses: ${errorAndResponses.platformResponses}")
+        logger.info { "the errors: ${errorAndResponses.clientErrors}" }
+        logger.info { "the request errors: ${errorAndResponses.requestErrors}" }
+        logger.info { "THE RESPONSES COUNT: ${errorAndResponses.responses.size}" }
+        logger.info { "the platform responses: ${errorAndResponses.responses}" }
     }
 }

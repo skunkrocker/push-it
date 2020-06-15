@@ -4,6 +4,7 @@ import arrow.core.Either
 import machinehead.model.RequestError
 import machinehead.servers.NotificationServers
 import machinehead.servers.Stage
+import mu.KotlinLogging
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -14,19 +15,25 @@ class RequestData(val stringPayload: String, val token: String, val stage: Stage
 
 class OkClientAPNSRequest {
     companion object {
+        const val TEST_URL_PROPERTY = "localhost.url"
+
+        private val logger = KotlinLogging.logger { }
         fun createAPNSRequest(requestData: RequestData): Either<RequestError, Request> {
-            val result = Either.left(
-                RequestError(
-                    requestData.token,
-                    "could not create request for device token"
-                )
-            )
-
-            val url = NotificationServers.forUrl(requestData.stage, requestData.token)
-
             try {
+                var url = NotificationServers.forUrl(requestData.stage, requestData.token)
+
+                if (!System.getProperty(TEST_URL_PROPERTY).isNullOrEmpty()) {
+                    url = NotificationServers.forUrl(Stage.TEST, requestData.token)
+                    logger.warn { "you overwrite the APNS  url to: $url " }
+                    logger.warn { "if you didn't do this for test purposes, please remove the property 'localhost.url' from your ENV" }
+                }
+
+                logger.debug { "the final request end point url: $url" }
+
                 val mediaType: MediaType = "application/json; charset=utf-8".toMediaType()
                 val body: RequestBody = requestData.stringPayload.toRequestBody(mediaType)
+
+                logger.debug { "the request body was created for device token: ${requestData.token}" }
 
                 val request = Request.Builder()
                     .url(url)
@@ -36,9 +43,14 @@ class OkClientAPNSRequest {
                 return Either.right(request)
 
             } catch (e: Exception) {
-                println(e)
+                logger.error { "could not create request for token: ${requestData.token}. error was: $e" }
             }
-            return result
+            return Either.left(
+                RequestError(
+                    requestData.token,
+                    "could not create request for device token: ${requestData.token}"
+                )
+            )
         }
     }
 }

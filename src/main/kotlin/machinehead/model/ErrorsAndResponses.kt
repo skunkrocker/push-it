@@ -1,11 +1,12 @@
 package machinehead.model
 
 import arrow.core.Option
-import arrow.core.Some
 
-class ClientError(val message: String)
-class RequestError(val token: String, val message: String)
+data class ClientError(val message: String)
+data class RequestError(val token: String, val message: String)
 data class PlatformResponse(val status: String, val message: String)
+data class PushResult(val token: String, val response: PlatformResponse)
+
 
 class ClientErrorListener {
     private val clientErrorList = mutableListOf<ClientError>()
@@ -18,24 +19,24 @@ class ClientErrorListener {
 }
 
 class PlatformResponseListener {
-    private val platformResponseList = mutableListOf<Option<PlatformResponse>>()
+    private val platformResponseList = mutableListOf<PushResult>()
 
-    fun report(response: Option<PlatformResponse>) {
-        if (response is Some) {
-            this.platformResponseList.add(response)
-        }
+    fun report(response: Option<PushResult>) {
+        response.fold({}, {
+            platformResponseList.add(it)
+        })
     }
 
     val platformResponses get() = platformResponseList
 }
 
 class RequestErrorListener {
-    private val requestErrorList = mutableListOf<Option<RequestError>>()
+    private val requestErrorList = mutableListOf<RequestError>()
 
     fun report(error: Option<RequestError>) {
-        if (error is Some) {
-            requestErrorList.add(error)
-        }
+        error.fold({}, {
+            requestErrorList.add(it)
+        })
     }
 
     val requestErrors get() = requestErrorList
@@ -43,7 +44,7 @@ class RequestErrorListener {
 
 class ResponsesAndErrors(
     val clientErrors: List<ClientError> = ArrayList(),
-    val requestErrors: List<Option<RequestError>> = ArrayList(),
-    var platformResponses: List<Option<PlatformResponse>> = ArrayList()
+    val requestErrors: List<RequestError> = ArrayList(),
+    var responses: List<PushResult> = ArrayList()
 )
 
