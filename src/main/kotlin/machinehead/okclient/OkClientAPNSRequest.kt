@@ -13,8 +13,6 @@ import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 
-class RequestData(val stringPayload: String, val token: String, val stage: Stage)
-
 class OkClientAPNSRequest {
     companion object {
         const val TEST_URL_PROPERTY = "localhost.url"
