@@ -15,9 +15,17 @@ sealed class NotificationServers {
 
         fun forUrl(stage: Stage?, deviceToken: String?): String {
             return when (stage) {
-                Stage.PRODUCTION -> PRODUCTION_URL + DEVICE_PATH + deviceToken
-                Stage.DEVELOPMENT -> DEVELOPMENT_URL + DEVICE_PATH + deviceToken
+                Stage.PRODUCTION -> baseUrlForStage(stage) + deviceToken
+                Stage.DEVELOPMENT -> baseUrlForStage(stage) + deviceToken
                 else -> System.getProperty("localhost.url") + DEVICE_PATH + deviceToken
+            }
+        }
+
+        fun baseUrlForStage(stage: Stage?): String {
+            return when (stage) {
+                Stage.PRODUCTION -> PRODUCTION_URL + DEVICE_PATH
+                Stage.DEVELOPMENT -> DEVELOPMENT_URL + DEVICE_PATH
+                else -> System.getProperty("localhost.url") + DEVICE_PATH
             }
         }
     }

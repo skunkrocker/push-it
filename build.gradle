@@ -54,15 +54,3 @@ tasks.test {
         events("passed", "skipped", "failed")
     }
 }
-
-/*
-junitPlatform {
-    filters {
-        engines {
-            include 'spek'
-        }
-    }
-}
- */
-
-

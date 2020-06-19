@@ -5,21 +5,21 @@ import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
 import machinehead.model.*
+import machinehead.model.SuccessResponseLoader.Companion.getJson
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.okclient.OkClientAPNSRequest.Companion.createAPNSRequest
+import machinehead.okclient.OkClientAPNSRequest.Companion.createURLAndRequestBody
 import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
 import machinehead.okclient.OkClientWithCredentials.Companion.releaseResources
 import machinehead.okclient.PayloadValidator.Companion.validate
 import machinehead.okclient.PlatformCallback
-import machinehead.okclient.RequestData
 import machinehead.parse.ParseErrors
 import machinehead.parse.notificationAsString
 import machinehead.servers.Stage.DEVELOPMENT
 import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
@@ -96,7 +96,6 @@ class PushIt {
 
     private fun pushAsyncAndWaitToFinish(payload: Payload): (OkHttpClient) -> Unit {
         return { okClient ->
-            val stage = payload.stage
             val applePayload = payload.notificationAsString()
 
             logger.debug { "the string representation of the payload will be push: $applePayload" }
@@ -105,22 +104,29 @@ class PushIt {
             logger.debug { "the payload will be pushed to total of ${payload.tokens.size} clients" }
             val callBacks = mutableListOf<PlatformCallback>()
 
-            payload.tokens.forEach { token ->
-                createAPNSRequest(RequestData(applePayload, token, stage))
-                    .fold({
-                        logger.error { "could not create request for the token: $token with the error: ${it.message}" }
-                        requestErrorListener.report(Some(it))
-                        countDownLatch.countDown()
-                    },
-                        { request ->
-                            logger.info { "will push the payload: $applePayload to device with token: $token" }
-                            val responseCallback = PlatformCallback(token, countDownLatch)
-                            okClient.newCall(request).enqueue(responseCallback)
-                            callBacks.add(responseCallback)
-                        })
+            val successJson = getJson("success.json")
+
+            createURLAndRequestBody(payload) { baseUrl, body ->
+                payload.tokens.forEach { token ->
+                    createAPNSRequest(baseUrl, body, token)
+                        .fold(
+                            {
+                                logger.error { "could not create request for the token: $token with the error: ${it.message}" }
+                                requestErrorListener.report(Some(it))
+                                countDownLatch.countDown()
+                            },
+                            { request ->
+                                logger.info { "will push the payload: $applePayload to device with token: $token" }
+                                val responseCallback = PlatformCallback(token, countDownLatch, successJson)
+                                okClient.newCall(request).enqueue(responseCallback)
+                                callBacks.add(responseCallback)
+                            }
+                        )
+                }
             }
+
             logger.debug { "will wait for all platform callbacks to report being done" }
-            countDownLatch.await(45, TimeUnit.SECONDS)
+            countDownLatch.await()
             logger.debug { "waiting for all platform callbacks is done" }
 
             releaseResources(okClient)
@@ -151,13 +157,12 @@ fun main() {
     val logger = KotlinLogging.logger { }
 
     val theTokens = mutableListOf<String>()
-    repeat(2) {
+    repeat(1000) {
         if (it % 2 == 0)
             theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
         else
             theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54")
     }
-
     payload {
         notification {
             aps {

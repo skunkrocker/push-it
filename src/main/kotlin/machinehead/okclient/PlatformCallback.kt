@@ -13,11 +13,16 @@ import okhttp3.Response
 import java.io.IOException
 import java.util.concurrent.CountDownLatch
 
-class PlatformCallback(private val token: String, private val countDownLatch: CountDownLatch) : Callback {
+class PlatformCallback(
+    private val token: String,
+    private val countDownLatch: CountDownLatch,
+    private val successJson: String
+) : Callback {
     private val logger = KotlinLogging.logger {}
 
     var response: Option<PushResult> = None
     var requestError: Option<RequestError> = None
+
 
     override fun onFailure(call: Call, e: IOException) {
         logger.error { e }
@@ -58,13 +63,6 @@ class PlatformCallback(private val token: String, private val countDownLatch: Co
         if (body.isNotEmpty()) {
             return body
         }
-        return getJson("success.json")
-    }
-
-    private fun getJson(path: String): String {
-        val classLoader = this.javaClass.classLoader
-        val uri = classLoader.getResource(path)
-        val file = java.io.File(uri!!.path)
-        return kotlin.text.String(file.readBytes(), kotlin.text.Charsets.UTF_8)
+        return successJson
     }
 }
