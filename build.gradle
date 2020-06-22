@@ -36,7 +36,6 @@ dependencies {
 
     testCompile 'org.jetbrains.spek:spek-api:1.1.5'
     testImplementation 'org.amshove.kluent:kluent:1.60'
-    testCompile group: 'io.mockk', name: 'mockk', version: '1.9.2'
     testRuntime 'org.jetbrains.spek:spek-junit-platform-engine:1.1.5'
     testCompile group: 'com.squareup.okhttp', name: 'mockwebserver', version: '1.2.1'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.6.2'

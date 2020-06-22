@@ -5,7 +5,6 @@ import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
 import machinehead.model.*
-import machinehead.model.SuccessResponseLoader.Companion.getJson
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
 import machinehead.okclient.OkClientAPNSRequest.Companion.createAPNSRequest
@@ -104,8 +103,6 @@ class PushIt {
             logger.debug { "the payload will be pushed to total of ${payload.tokens.size} clients" }
             val callBacks = mutableListOf<PlatformCallback>()
 
-            val successJson = getJson("success.json")
-
             createURLAndRequestBody(payload) { baseUrl, body ->
                 payload.tokens.forEach { token ->
                     createAPNSRequest(baseUrl, body, token)
@@ -117,7 +114,7 @@ class PushIt {
                             },
                             { request ->
                                 logger.info { "will push the payload: $applePayload to device with token: $token" }
-                                val responseCallback = PlatformCallback(token, countDownLatch, successJson)
+                                val responseCallback = PlatformCallback(token, countDownLatch)
                                 okClient.newCall(request).enqueue(responseCallback)
                                 callBacks.add(responseCallback)
                             }

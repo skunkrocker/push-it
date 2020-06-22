@@ -15,8 +15,7 @@ import java.util.concurrent.CountDownLatch
 
 class PlatformCallback(
     private val token: String,
-    private val countDownLatch: CountDownLatch,
-    private val successJson: String
+    private val countDownLatch: CountDownLatch
 ) : Callback {
     private val logger = KotlinLogging.logger {}
 
@@ -63,6 +62,6 @@ class PlatformCallback(
         if (body.isNotEmpty()) {
             return body
         }
-        return successJson
+        return "{\"reason\":\"Success\"}"
     }
 }

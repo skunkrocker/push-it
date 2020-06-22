@@ -1,6 +1,6 @@
 package machinehead.model
 
-class SuccessResponseLoader {
+class ResponsesLoader {
     companion object {
         fun getJson(path: String): String {
             val classLoader = this::class.java.classLoader
