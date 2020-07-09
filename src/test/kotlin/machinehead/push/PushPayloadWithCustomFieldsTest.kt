@@ -36,7 +36,8 @@ class PushPayloadWithCustomFieldsTest {
     @Test
     fun `push notification for develop platform`() {
         //given
-        val payload = `get development payload`()
+        val payload =
+            `get development payload`(TestData.TOKEN, hashMapOf(TestData.APNS_TOPIC_KEY to TestData.APNS_TOPIC_VALUE))
 
         //when
         val pushIt = PushIt()
