@@ -4,6 +4,8 @@ import arrow.core.Some
 import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
+import machinehead.extensions.notificationAsString
+import machinehead.extensions.push
 import machinehead.model.*
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
@@ -14,7 +16,6 @@ import machinehead.okclient.OkClientWithCredentials.Companion.releaseResources
 import machinehead.okclient.PayloadValidator.Companion.validate
 import machinehead.okclient.PlatformCallback
 import machinehead.parse.ParseErrors
-import machinehead.parse.notificationAsString
 import machinehead.servers.Stage.DEVELOPMENT
 import mu.KotlinLogging
 import okhttp3.OkHttpClient
@@ -22,22 +23,7 @@ import java.util.concurrent.CountDownLatch
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-infix fun Payload.push(report: (ResponsesAndErrors) -> Unit) {
-    val logger = KotlinLogging.logger {}
 
-    val pushIt = PushIt()
-    logger.info { "will begin to prepare push" }
-
-    pushIt.with(this)
-
-    val responsesAndErrors = ResponsesAndErrors(
-        pushIt.clientErrorListener.clientErrors,
-        pushIt.requestErrorListener.requestErrors,
-        pushIt.platformResponseListener.platformResponses
-    )
-    logger.debug { "report responses and errors $responsesAndErrors" }
-    report(responsesAndErrors)
-}
 
 class PushIt {
 
