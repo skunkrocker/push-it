@@ -41,7 +41,7 @@ class MockAPNSResponses : Dispatcher() {
 
         if (path!! == "${NotificationServers.DEVICE_PATH}${TestData.BAD_DEVICE_TOKEN}") {
             return MockResponse()
-                .setResponseCode(200)
+                .setResponseCode(400)
                 .setBody(getJson("bad_device_token.json"))
         }
         if (path == "${NotificationServers.DEVICE_PATH}${TestData.TOKEN}") {

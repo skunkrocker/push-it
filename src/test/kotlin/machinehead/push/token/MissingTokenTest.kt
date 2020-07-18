@@ -1,27 +1,21 @@
-package machinehead.push.headers
+package machinehead.push.token
 
-import com.google.gson.JsonParser
 import com.squareup.okhttp.mockwebserver.MockWebServer
 import machinehead.PushIt
-import machinehead.model.ResponsesLoader.Companion.getJson
 import machinehead.okclient.OkClientAPNSRequest
-import machinehead.push.APNSHeaders.Companion.APNS_PRIORITY
 import machinehead.push.APNSResponseAssertion
 import machinehead.push.MockAPNSResponses
 import machinehead.push.TestData
 import machinehead.push.TestData.Companion.APNS_TOPIC_KEY
 import machinehead.push.TestData.Companion.APNS_TOPIC_VALUE
-import machinehead.push.TestData.Companion.TOKEN
-import machinehead.push.TestData.Companion.`get test payload`
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle
-import org.junit.jupiter.api.Assertions.assertEquals
 
 @TestInstance(Lifecycle.PER_CLASS)
-class PriorityHeaderTest : APNSResponseAssertion() {
+class MissingTokenTest : APNSResponseAssertion() {
 
     private lateinit var mockWebServer: MockWebServer
 
@@ -37,24 +31,19 @@ class PriorityHeaderTest : APNSResponseAssertion() {
 
     @Test
     @ExperimentalStdlibApi
-    fun `priority header has invalid value - report apns message`() {
+    fun `the device token is missing - report apns message`() {
         //given
-        val payload = `get test payload`(
-            TOKEN, hashMapOf(
-                APNS_TOPIC_KEY to APNS_TOPIC_VALUE,
-                APNS_PRIORITY to "11"
-            )
+        val payload = TestData.`get test payload`(
+            "", hashMapOf(APNS_TOPIC_KEY to APNS_TOPIC_VALUE)
         )
         //when
         val pushIt = PushIt()
         pushIt.with(payload)
 
         //then
-        mockWebServer.takeRequest()
-
         val platformResponses = pushIt.platformResponseListener.platformResponses
-
-        assertResponse(platformResponses, "bad_priority.json")
+        println(platformResponses)
+        assertResponse(platformResponses, "missing_token.json")
     }
 
     @AfterAll
