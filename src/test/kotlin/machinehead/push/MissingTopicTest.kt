@@ -8,9 +8,9 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
 import org.junit.jupiter.api.TestInstance.Lifecycle
-import kotlin.test.assertEquals
-import kotlin.test.assertNotEquals
-import kotlin.test.assertNotNull
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
 
 @TestInstance(Lifecycle.PER_CLASS)
 class MissingTopicTest {
@@ -27,6 +27,9 @@ class MissingTopicTest {
         val noTopic = pushIt.errorMessages.noTopic
         assertNotNull(noTopic)
         assertNotEquals(noTopic, "")
-        assertEquals(noTopic, "you have to provide the \"apns-topic\" in the headers of the payload. It is usually the bundle id of your App")
+        assertEquals(
+            noTopic,
+            "you have to provide the \"apns-topic\" in the headers of the payload. It is usually the bundle id of your App"
+        )
     }
 }
