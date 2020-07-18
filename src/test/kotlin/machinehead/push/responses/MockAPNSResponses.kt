@@ -5,18 +5,7 @@ import com.squareup.okhttp.mockwebserver.MockResponse
 import com.squareup.okhttp.mockwebserver.RecordedRequest
 import machinehead.model.ResponsesLoader.Companion.getJson
 import machinehead.push.TestData
-import machinehead.push.responses.APNSHeaders.Companion.APNS_COLLAPSE_ID
-import machinehead.push.responses.APNSHeaders.Companion.APNS_EXPIRATION
-import machinehead.push.responses.APNSHeaders.Companion.APNS_PRIORITY
 import machinehead.servers.NotificationServers
-
-class APNSHeaders {
-    companion object {
-        const val APNS_PRIORITY     = "apns-priority"
-        const val APNS_EXPIRATION   = "apns-expiration"
-        const val APNS_COLLAPSE_ID  = "apns-collapse-id"
-    }
-}
 
 class MockAPNSResponses : Dispatcher() {
     override fun dispatch(request: RecordedRequest?): MockResponse {
