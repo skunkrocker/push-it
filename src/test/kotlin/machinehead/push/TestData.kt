@@ -22,7 +22,7 @@ class TestData {
         const val TOKEN: String = "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55"
         const val BAD_DEVICE_TOKEN: String = "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54"
 
-        fun `get development payload`(token: String, theHeaders: HashMap<String, Any>): Payload {
+        fun `get test payload`(token: String, theHeaders: HashMap<String, Any>): Payload {
             return payload {
                 notification {
                     aps {

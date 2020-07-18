@@ -4,7 +4,7 @@ import com.google.gson.JsonParser
 import com.squareup.okhttp.mockwebserver.MockWebServer
 import machinehead.PushIt
 import machinehead.okclient.OkClientAPNSRequest.Companion.TEST_URL_PROPERTY
-import machinehead.push.TestData.Companion.`get development payload`
+import machinehead.push.TestData.Companion.`get test payload`
 import machinehead.servers.NotificationServers
 import mu.KotlinLogging
 import org.junit.jupiter.api.AfterAll
@@ -32,12 +32,12 @@ class PushPayloadWithCustomFieldsTest {
         System.setProperty(TEST_URL_PROPERTY, url.toString())
     }
 
-    @ExperimentalStdlibApi
     @Test
+    @ExperimentalStdlibApi
     fun `push notification for develop platform`() {
         //given
         val payload =
-            `get development payload`(TestData.TOKEN, hashMapOf(TestData.APNS_TOPIC_KEY to TestData.APNS_TOPIC_VALUE))
+            `get test payload`(TestData.TOKEN, hashMapOf(TestData.APNS_TOPIC_KEY to TestData.APNS_TOPIC_VALUE))
 
         //when
         val pushIt = PushIt()
