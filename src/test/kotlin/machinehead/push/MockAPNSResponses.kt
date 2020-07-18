@@ -36,12 +36,12 @@ class MockAPNSResponses : Dispatcher() {
         if (request?.getHeader(APNS_PRIORITY) != null) {
             return MockResponse()
                 .setResponseCode(400)
-                .setBody(getJson("bad_collapse_id.json"))
+                .setBody(getJson("bad_priority.json"))
         }
 
         if (path!! == "${NotificationServers.DEVICE_PATH}${TestData.BAD_DEVICE_TOKEN}") {
             return MockResponse()
-                .setResponseCode(200)
+                .setResponseCode(400)
                 .setBody(getJson("bad_device_token.json"))
         }
         if (path == "${NotificationServers.DEVICE_PATH}${TestData.TOKEN}") {

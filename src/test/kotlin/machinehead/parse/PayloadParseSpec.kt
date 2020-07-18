@@ -1,6 +1,7 @@
 package machinehead.parse
 
 import com.google.gson.JsonParser
+import machinehead.extensions.notificationAsString
 import machinehead.model.payload
 import org.amshove.kluent.`should be equal to`
 import org.amshove.kluent.`should not be null`

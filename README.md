@@ -13,7 +13,7 @@ payload {
         }
     }
     headers = hashMapOf(
-            "apns-topic" to "ch.sbb.ios.pushnext"
+            "apns-topic" to "org.machinehead.app"
         )
     custom = hashMapOf(
            "custom-property" to "hello custom",
@@ -41,7 +41,7 @@ payload {
         }
     }
     headers = hashMapOf(
-            "apns-topic" to "ch.sbb.ios.pushnext"
+            "apns-topic" to "org.machinehead.app"
         )
     custom = hashMapOf(
            "custom-property" to "hello custom",
