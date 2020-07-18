@@ -6,6 +6,7 @@ import machinehead.PushIt
 import machinehead.model.ResponsesLoader.Companion.getJson
 import machinehead.okclient.OkClientAPNSRequest
 import machinehead.push.APNSHeaders.Companion.APNS_PRIORITY
+import machinehead.push.APNSResponseAssertion
 import machinehead.push.MockAPNSResponses
 import machinehead.push.TestData
 import machinehead.push.TestData.Companion.APNS_TOPIC_KEY
@@ -20,7 +21,7 @@ import org.junit.jupiter.api.TestInstance.Lifecycle
 import org.junit.jupiter.api.Assertions.assertEquals
 
 @TestInstance(Lifecycle.PER_CLASS)
-class PriorityHeaderTest {
+class PriorityHeaderTest : APNSResponseAssertion() {
 
     private lateinit var mockWebServer: MockWebServer
 
@@ -54,23 +55,7 @@ class PriorityHeaderTest {
 
         val platformResponses = pushIt.platformResponseListener.platformResponses
 
-        val size = platformResponses.size
-        assertEquals(1, size)
-
-        platformResponses.forEach {
-            assertEquals(400, it.response.status.toInt())
-            val apnsReason = jsonParser
-                .parse(it.response.message)
-                .asJsonObject.get("reason")
-                .asString
-
-            val expectedReason = jsonParser
-                .parse(getJson("bad_priority.json"))
-                .asJsonObject.get("reason")
-                .asString
-
-            assertEquals(expectedReason, apnsReason)
-        }
+        assertResponse(platformResponses, "bad_priority.json")
     }
 
     @AfterAll
