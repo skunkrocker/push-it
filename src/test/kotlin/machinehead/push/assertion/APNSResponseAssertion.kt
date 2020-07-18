@@ -1,4 +1,4 @@
-package machinehead.push
+package machinehead.push.assertion
 
 import com.google.gson.JsonParser
 import machinehead.model.PushResult
