@@ -1,4 +1,4 @@
-package machinehead.push
+package machinehead.push.headers
 
 import machinehead.PushIt
 import machinehead.push.TestData.Companion.TOKEN
@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 
-class MissingTopicTest {
+class MissingTopicHeaderTest {
 
     @Test
     @ExperimentalStdlibApi
