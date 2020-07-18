@@ -4,6 +4,10 @@ import arrow.core.Some
 import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
+import machinehead.extensions.notificationAsString
+import machinehead.extensions.push
+import machinehead.extensions.reportCredentialsManagerError
+import machinehead.extensions.reportError
 import machinehead.model.*
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
@@ -14,7 +18,6 @@ import machinehead.okclient.OkClientWithCredentials.Companion.releaseResources
 import machinehead.okclient.PayloadValidator.Companion.validate
 import machinehead.okclient.PlatformCallback
 import machinehead.parse.ParseErrors
-import machinehead.parse.notificationAsString
 import machinehead.servers.Stage.DEVELOPMENT
 import mu.KotlinLogging
 import okhttp3.OkHttpClient
@@ -22,26 +25,9 @@ import java.util.concurrent.CountDownLatch
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-infix fun Payload.push(report: (ResponsesAndErrors) -> Unit) {
-    val logger = KotlinLogging.logger {}
-
-    val pushIt = PushIt()
-    logger.info { "will begin to prepare push" }
-
-    pushIt.with(this)
-
-    val responsesAndErrors = ResponsesAndErrors(
-        pushIt.clientErrorListener.clientErrors,
-        pushIt.requestErrorListener.requestErrors,
-        pushIt.platformResponseListener.platformResponses
-    )
-    logger.debug { "report responses and errors $responsesAndErrors" }
-    report(responsesAndErrors)
-}
-
 class PushIt {
 
-    private val logger = KotlinLogging.logger {}
+    val logger = KotlinLogging.logger {}
 
     var credentialsManager = P12CredentialsFromEnv()
 
@@ -49,8 +35,7 @@ class PushIt {
     var requestErrorListener = RequestErrorListener()
     var platformResponseListener = PlatformResponseListener()
 
-
-    private val errorMessages: ParseErrors
+    val errorMessages: ParseErrors
         get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
 
     infix fun with(payload: Payload) {
@@ -132,20 +117,6 @@ class PushIt {
                 platformResponseListener.report(callBack.response)
                 requestErrorListener.report(callBack.requestError)
             }
-        }
-    }
-
-    private fun reportError(): (ClientError) -> Unit {
-        return {
-            logger.error { it.message }
-            this.clientErrorListener report it
-        }
-    }
-
-    private fun reportCredentialsManagerError(): () -> Unit {
-        return {
-            logger.error { "the default credential manager was replaced with null" }
-            clientErrorListener report ClientError(errorMessages.noCredentialsManager.orEmpty())
         }
     }
 }

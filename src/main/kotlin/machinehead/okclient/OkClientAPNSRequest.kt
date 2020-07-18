@@ -1,9 +1,9 @@
 package machinehead.okclient
 
 import arrow.core.Either
+import machinehead.extensions.notificationAsString
 import machinehead.model.Payload
 import machinehead.model.RequestError
-import machinehead.parse.notificationAsString
 import machinehead.servers.NotificationServers
 import machinehead.servers.Stage
 import mu.KotlinLogging
