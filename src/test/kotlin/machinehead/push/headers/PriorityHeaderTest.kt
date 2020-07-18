@@ -10,6 +10,7 @@ import machinehead.push.MockAPNSResponses
 import machinehead.push.TestData
 import machinehead.push.TestData.Companion.APNS_TOPIC_KEY
 import machinehead.push.TestData.Companion.APNS_TOPIC_VALUE
+import machinehead.push.TestData.Companion.TOKEN
 import machinehead.push.TestData.Companion.`get test payload`
 import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.BeforeAll
@@ -38,7 +39,7 @@ class PriorityHeaderTest {
     fun `priority header has invalid value - report apns message`() {
         //given
         val payload = `get test payload`(
-            TestData.TOKEN, hashMapOf(
+            TOKEN, hashMapOf(
                 APNS_TOPIC_KEY to APNS_TOPIC_VALUE,
                 APNS_PRIORITY to "11"
             )
