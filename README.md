@@ -35,7 +35,7 @@ payload {
           logger.info { "the platform responses: ${errorAndResponses.responses}" }
  }
 ```
-- client errors are reported when something went wrong when the Ok Client and the Request were created. 
+- client errors are reported when something went wrong when the Ok Client and the Request were in creation. It also reports wrong validated payloads.
 - request errors are mapped to a device token and contains the network error that might have occurred when APNS communication failed.
 - APNS responses are also mapped to a device token and can be errors that APNS is communicating downstream. The APNS errors 
   are in this case JSON string with single field called ``reason`` that contains one of the values listed on the APNS developer site.
