@@ -37,7 +37,24 @@ payload {
 - request errors are mapped to a device token and contains the network error that might have occurred when APNS communication failed.
 - APNS responses are also mapped to a device token and can be errors that APNS is communicating downstream. The APNS errors 
   are in this case JSON string with single field called ``reason`` that contains one of the values listed on the APNS developer site.
-  
+### Custom Credential manager
+Authentication on APNS is achieved with the help of P12 certificates. The default certificate manager expects the certificate in a ```CERTIFICATE```
+environment variable and it's content encoded in base 64 format. How to do that, see below. The password for the certificate is expected to be given in the
+```PASSWORD``` environment variable.
+This comes from the idea to store the certificate and password contents in a OpenShift Secrets. If you don't use OpenShift or you need another way 
+to provide the certificate, you can provide your own certificate manager provided you implement the following interface
+```ruby
+interface CredentialsManager {
+    fun credentials(): Either<ClientError, Pair<SSLSocketFactory, X509TrustManager>>
+}
+```
+To use this custom credentials manager, you first need to instantiate the PushIt Class
+```ruby
+val pushIt = PushIt()
+pushIt.credentialsManager = myCustomCredentialsManager
+pushIt.with(myPayload)
+```
+Future versions may provide more declarative way to do this and maintain the declarative use of the library as shown in the example above.
 #### Testing
 The Push It client is tested with the help of ```MockWebServer```.
 To achieve this, the property ```localhost.url``` is setting the ```MockWebServer``` url 
