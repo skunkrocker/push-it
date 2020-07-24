@@ -5,10 +5,8 @@ It is fully functional project that can be used to push iOS notifications to App
 It may or may not be usable for Java, I have never tried to use it from within Java project.
 The project is tested on live iOS devices registered on APNS Sandbox and never with the APNS Production stage.
 Since pushing on APNS Production is only changing the URL for the service, this should as well work for Production.
-Artifact on Maven or jCentral may come with the time, for now, you will have to build it for your self and use the jar
-from your local Artifactory. 
+Artifact on Maven or jCentral may come with the time, for now include the built jar into your local Artifactory. 
 ### Usage
-
 ```ruby
 payload {
     notification {
