@@ -1,6 +1,6 @@
 # push-it
 ### General
-This project is first and foremost my playground for learning the Kotlin language.
+This project is first and foremost my playground to learn the Kotlin language.
 It is fully functional project that can be used to push iOS notifications to Apple devices using Kotlin.
 It may or may not be usable for Java, I have never tried to use it from within Java project.
 The project is tested on live iOS devices registered on APNS Sandbox and never with the APNS Production stage.
