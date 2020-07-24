@@ -35,12 +35,11 @@ payload {
           logger.info { "the platform responses: ${errorAndResponses.responses}" }
  }
 ```
-There are two types of errors that are reported and there are responses from APNS.
-The client errors indicate that something went wrong when the Ok Client and the Request were created.
-The request errors are mapped to a device token and contains the network error that might have occurred when APNS communication failed.
-APNS responses are also mapped to a device token and can be errors that APNS is communicating downstream. The APNS errors 
-are in this case JSON string with single field called ``reason`` that contains one of the values listed on the APNS developer site.
-
+- client errors are reported when something went wrong when the Ok Client and the Request were created. 
+- request errors are mapped to a device token and contains the network error that might have occurred when APNS communication failed.
+- APNS responses are also mapped to a device token and can be errors that APNS is communicating downstream. The APNS errors 
+  are in this case JSON string with single field called ``reason`` that contains one of the values listed on the APNS developer site.
+  
 #### Testing
 The Push It client is tested with the help of ```MockWebServer```.
 To achieve this, the property ```localhost.url``` is setting the ```MockWebServer``` url 
