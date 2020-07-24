@@ -25,7 +25,7 @@ class PayloadParseSpecSpec : Spek({
             )
         }.notificationAsString()
 
-        it("should contain the body and ") {
+        it("should contain the body and aps and alert dictionary ") {
             val notification = JsonParser().parse(stringNotification)
 
             val aps = notification.asJsonObject.getAsJsonObject("aps")
