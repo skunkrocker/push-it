@@ -1,5 +1,12 @@
 # push-it
-
+### General
+This project is first and foremost my playground for learning the Kotlin language.
+It is fully functional project that can be used to push iOS notifications to Apple devices using Kotlin.
+It may or may not be usable for Java, I have never tried to use it from within Java project.
+The project is tested on live iOS devices registered on APNS Sandbox and never with the APNS Production stage.
+Since pushing on APNS Production is only changing the URL for the service, this should as well work for Production.
+Artifact on Maven or jCentral may come with the time, for now, you will have to build it for your self and use the jar
+from your local Artifactory. 
 ### Usage
 
 ```ruby
@@ -27,37 +34,6 @@ payload {
           logger.info { "THE RESPONSES COUNT: ${errorAndResponses.responses.size}" }
           logger.info { "the platform responses: ${errorAndResponses.responses}" }
  }
-```
-
-```ruby
-val payload = 
-payload {
-    notification {
-        aps {
-          alert {
-            body = "Hello"
-            subtitle = "Subtitle"
-           }
-        }
-    }
-    headers = hashMapOf(
-            "apns-topic" to "org.machinehead.app"
-        )
-    custom = hashMapOf(
-           "custom-property" to "hello custom",
-           "blow-up" to true
-        )
-    stage = DEVELOPMENT
-    tokens = arrayListOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
-}
-
-PushIt.with(payload)
-{ errorAndResponses ->
-        logger.info { "the errors: ${errorAndResponses.clientErrors}" }
-        logger.info { "the request errors: ${errorAndResponses.requestErrors}" }
-        logger.info { "THE RESPONSES COUNT: ${errorAndResponses.responses.size}" }
-        logger.info { "the platform responses: ${errorAndResponses.responses}" }
-}
 ```
 #### Testing
 The Push It client is tested with the help of ```MockWebServer```.
@@ -100,3 +76,8 @@ fun main() {
 ```
 - Add the Base 64 Encoded file into the Build Environment assigned to the ``CERTIFICATE`` variable.
 - Add the Certificate password into the Build Environment assigned to the ```PASSWORD``` variable.
+
+### Plans for next versions
+- Use the Kotlin coroutines for asynchronous communication with APNS
+- Use Retrofit
+- Android push notifications
