@@ -78,6 +78,8 @@ fun main() {
 - Add the Certificate password into the Build Environment assigned to the ```PASSWORD``` variable.
 
 ### Plans for next versions
-- Use the Kotlin coroutines for asynchronous communication with APNS
+- Use Kotlin coroutines
 - Use Retrofit
 - Android push notifications
+- Build chain
+- Maven and jCentral artifact
