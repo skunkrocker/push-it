@@ -1,11 +1,12 @@
 package machinehead.okclient
 
 import arrow.core.Either
+import machinehead.extensions.isNotNullOrEmpty
 import machinehead.extensions.notificationAsString
 import machinehead.model.Payload
 import machinehead.model.RequestError
 import machinehead.servers.NotificationServers
-import machinehead.servers.Stage
+import machinehead.servers.Stage.TEST
 import mu.KotlinLogging
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
@@ -22,8 +23,8 @@ class OkClientAPNSRequest {
         fun createURLAndRequestBody(payload: Payload, onCreated: (url: String, body: RequestBody) -> Unit) {
             var url = NotificationServers.baseUrlForStage(payload.stage)
 
-            if (!System.getProperty(TEST_URL_PROPERTY).isNullOrEmpty()) {
-                url = NotificationServers.baseUrlForStage(Stage.TEST)
+            if (System.getProperty(TEST_URL_PROPERTY).isNotNullOrEmpty()) {
+                url = NotificationServers.baseUrlForStage(TEST)
                 logger.warn { "you overwrite the APNS  url to: $url " }
                 logger.warn { "if you didn't do this for test purposes, please remove the property 'localhost.url' from your ENV" }
             }
