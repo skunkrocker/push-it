@@ -21,10 +21,10 @@ class OkClientAPNSRequest {
         private val logger = KotlinLogging.logger { }
 
         fun createURLAndRequestBody(payload: Payload, onCreated: (url: String, body: RequestBody) -> Unit) {
-            var url = NotificationServers.baseUrlForStage(payload.stage)
+            var url = NotificationServers.urlForStage(payload.stage)
 
             if (System.getProperty(TEST_URL_PROPERTY).isNotNullOrEmpty()) {
-                url = NotificationServers.baseUrlForStage(TEST)
+                url = NotificationServers.urlForStage(TEST)
                 logger.warn { "you overwrite the APNS  url to: $url " }
                 logger.warn { "if you didn't do this for test purposes, please remove the property 'localhost.url' from your ENV" }
             }
