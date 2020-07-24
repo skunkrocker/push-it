@@ -141,7 +141,7 @@ fun main() {
             }
         }
         headers = hashMapOf(
-            "apns-topic" to "ch.sbb.ios.pushnext"
+            "apns-topic" to "org.your.app.bundle.id"
         )
         custom = hashMapOf(
             "custom-property" to "hello custom",
