@@ -14,7 +14,6 @@ class ClientErrorListener {
         clientErrorList.add(error)
     }
 
-    val hasErrors: Boolean get() = clientErrorList.isNotEmpty()
     val clientErrors: List<ClientError> get() = clientErrorList
 }
 

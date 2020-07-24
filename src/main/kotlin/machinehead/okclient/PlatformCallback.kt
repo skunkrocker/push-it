@@ -34,16 +34,8 @@ class PlatformCallback(
     override fun onResponse(call: Call, response: Response) {
         logger.debug { "response received for $token" }
         try {
-            val pushResponse = when (response.isSuccessful) {
-                true -> PlatformResponse(
-                    response.code.toString(),
-                    getSuccessMessage(response)
-                )
-                false -> PlatformResponse(
-                    response.code.toString(),
-                    response.body?.string().orEmpty()
-                )
-            }
+            val pushResponse = getPlatformResponse(response)
+
             logger.debug { "the push response: $pushResponse for token: $token received" }
             this.response = Some(PushResult(token, pushResponse))
 
@@ -56,6 +48,18 @@ class PlatformCallback(
         countDownLatch.countDown()
         logger.debug { "count down latch called" }
     }
+
+    private fun getPlatformResponse(response: Response) =
+        when (response.isSuccessful) {
+            true -> PlatformResponse(
+                response.code.toString(),
+                getSuccessMessage(response)
+            )
+            false -> PlatformResponse(
+                response.code.toString(),
+                response.body?.string().orEmpty()
+            )
+        }
 
     private fun getSuccessMessage(response: Response): String {
         val body = response.body?.string().orEmpty()
