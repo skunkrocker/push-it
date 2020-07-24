@@ -3,9 +3,11 @@ package machinehead.okclient
 import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
+import machinehead.model.APNSResponse
 import machinehead.model.PlatformResponse
 import machinehead.model.PushResult
 import machinehead.model.RequestError
+import machinehead.parse.gson
 import mu.KotlinLogging
 import okhttp3.Call
 import okhttp3.Callback
@@ -50,22 +52,14 @@ class PlatformCallback(
     }
 
     private fun getPlatformResponse(response: Response) =
-        when (response.isSuccessful) {
-            true -> PlatformResponse(
-                response.code.toString(),
-                getSuccessMessage(response)
-            )
-            false -> PlatformResponse(
-                response.code.toString(),
-                response.body?.string().orEmpty()
-            )
-        }
+        PlatformResponse(response.code, getAPNSResponse(response))
 
-    private fun getSuccessMessage(response: Response): String {
+    private fun getAPNSResponse(response: Response): APNSResponse {
         val body = response.body?.string().orEmpty()
+
         if (body.isNotEmpty()) {
-            return body
+            return gson().fromJson(body, APNSResponse::class.java)
         }
-        return "{\"reason\":\"Success\"}"
+        return gson().fromJson("{\"reason\":\"Success\"}", APNSResponse::class.java)
     }
 }

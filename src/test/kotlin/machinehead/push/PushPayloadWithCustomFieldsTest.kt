@@ -75,8 +75,8 @@ class PushPayloadWithCustomFieldsTest {
 
         platformResponses.forEach {
             assertEquals(TestData.TOKEN, it.token)
-            assertEquals(200.toString(), it.response.status)
-            val reasonMessage = jsonParser.parse(it.response.message).asJsonObject.get("reason").asString
+            assertEquals(200, it.response.status)
+            val reasonMessage = it.response.apns.reason
             assertEquals("Success", reasonMessage)
         }
     }
