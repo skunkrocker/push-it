@@ -15,7 +15,7 @@ open class APNSResponseAssertion {
             assertEquals(400, it.response.status)
             val apnsReason = it.response.apns.reason
 
-            val expected = gson()
+            val expected = gson
                 .fromJson(
                     ResponsesLoader.getJson(expectedResponse), APNSResponse::class.java
                 )

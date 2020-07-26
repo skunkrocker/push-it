@@ -58,8 +58,8 @@ class PlatformCallback(
         val body = response.body?.string().orEmpty()
 
         if (body.isNotEmpty()) {
-            return gson().fromJson(body, APNSResponse::class.java)
+            return gson.fromJson(body, APNSResponse::class.java)
         }
-        return gson().fromJson("{\"reason\":\"Success\"}", APNSResponse::class.java)
+        return gson.fromJson("{\"reason\":\"Success\"}", APNSResponse::class.java)
     }
 }

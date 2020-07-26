@@ -1,7 +1,6 @@
 package machinehead.parse
 
 import com.google.gson.GsonBuilder
-import machinehead.model.Payload
 
 data class ParseErrors(
     var noTopic: String?,
@@ -11,7 +10,6 @@ data class ParseErrors(
     var noCredentialsManager: String?
 )
 
-fun gson() =
-    GsonBuilder()
-        .setPrettyPrinting()
-        .create()
+val gson = GsonBuilder()
+    .setPrettyPrinting()
+    .create()
