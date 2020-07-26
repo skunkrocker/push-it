@@ -1,14 +1,14 @@
-name: Java CI with Gradle
+name: Build Project on Push and Pull Request
 
 on:
   push:
-    branches: [ master, develop ]
+    branches: [ develop, master ]
   pull_request:
-    branches: [ master, develop ]
+    branches: [ develop, master ]
 
 jobs:
   build:
-
+    
     runs-on: ubuntu-latest
 
     steps:
