@@ -2,15 +2,16 @@ name: Build Project on Push and Pull Request
 
 on:
   push:
-    branches: [ develop, master ]
+    branches:
+      - feature/*
   pull_request:
-    branches: [ develop, master ]
+    branches:
+      - develop
+      - master
 
 jobs:
   build:
-    
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - name: Setup JDK 11.0.2
