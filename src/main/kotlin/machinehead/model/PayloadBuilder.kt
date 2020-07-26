@@ -1,6 +1,6 @@
 package machinehead.model
 
-import machinehead.servers.Platform
+import machinehead.servers.Stage
 
 fun payload(block: PayloadBuilder.() -> Unit): Payload = PayloadBuilder().apply(block).build()
 
@@ -8,13 +8,14 @@ class PayloadBuilder {
     var notification: Notification? = null
     var custom = hashMapOf<String, Any>()
     var tokens = listOf<String>()
-    var platform = Platform.IOS_SANDBOX
+    var stage = Stage.DEVELOPMENT
+    var headers = hashMapOf<String, Any>()
 
     fun notification(block: NotificationBuilder.() -> Unit) {
         notification = NotificationBuilder().apply(block).build()
     }
 
-    fun build(): Payload = Payload(notification, custom, tokens, platform)
+    fun build(): Payload = Payload(stage, tokens, headers, notification, custom)
 }
 
 class NotificationBuilder {

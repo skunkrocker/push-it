@@ -1,86 +1,120 @@
 package machinehead
 
+import arrow.core.Some
+import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
-import machinehead.model.Payload
-import machinehead.model.payload
+import machinehead.extensions.notificationAsString
+import machinehead.extensions.reportCredentialsManagerError
+import machinehead.extensions.reportError
+import machinehead.model.*
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
+import machinehead.okclient.OkClientAPNSRequest.Companion.createAPNSRequest
+import machinehead.okclient.OkClientAPNSRequest.Companion.createURLAndRequestBody
+import machinehead.okclient.OkClientWithCredentials.Companion.createOkClient
+import machinehead.okclient.OkClientWithCredentials.Companion.releaseResources
+import machinehead.okclient.PayloadValidator.Companion.validate
+import machinehead.okclient.PlatformCallback
 import machinehead.parse.ParseErrors
-import machinehead.result.*
+import mu.KotlinLogging
+import okhttp3.OkHttpClient
+import java.util.concurrent.CountDownLatch
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
-infix fun Payload.push(result: (PushResult) -> Unit) {
-    PushIt.with(this) {
-        result(it)
-    }
-}
+class PushIt {
 
-sealed class PushIt {
-    companion object {
+    val logger = KotlinLogging.logger {}
 
-        private var credentials: CredentialsManager = P12CredentialsFromEnv()
+    var credentialsManager = P12CredentialsFromEnv()
 
-        private val errors: ParseErrors
-            get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
+    var clientErrorListener = ClientErrorListener()
+    var requestErrorListener = RequestErrorListener()
+    var platformResponseListener = PlatformResponseListener()
 
-        var credentialsManager: CredentialsManager
-            get() = this.credentials
-            set(value) {
-                this.credentials = value
-            }
+    val errorMessages: ParseErrors
+        get() = From the YAMLFile("payload-errors.yml", ParseErrors::class)
 
-        fun with(payload: Payload, result: (PushResult) -> Unit) {
-            result(
-                validate(payload) {
-                    return@validate credentials.credentials({ _: SSLSocketFactory, _: X509TrustManager ->
-                        val messageForTokens = mutableMapOf<String, Response>()
-                        payload.tokens.forEach {
-                            messageForTokens[it] = Response("200", "Message")
-                        }
-                        return@credentials PushResult(messageForTokens, null)
-                    }, {
-                        return@credentials PushResult(null, errors.credentialsError?.let { CredentialsException(it) })
-                    })
-                }
+    infix fun with(payload: Payload) {
+        validate(payload)
+            .fold(
+                push(payload),
+                reportError()
             )
-        }
+    }
 
-        private fun validate(payload: Payload, isValid: () -> PushResult): PushResult {
-            if (payload.tokens.isEmpty()) {
-                return PushResult(
-                    null,
-                    errors.noTokens?.let { TokensMissingException(it) }
+    private fun push(payload: Payload): () -> Unit {
+        return {
+            credentialsManager
+                .toOption()
+                .fold(
+                    reportCredentialsManagerError(),
+                    createCredentialsAndPush(payload)
                 )
-            }
-            if (payload.notification?.aps?.alert == null) {
-                return PushResult(
-                    null,
-                    errors.noAlert?.let { InvalidNotification(it) }
-                )
-            }
-            return isValid()
         }
     }
-}
 
-fun main() {
-    payload {
-        notification {
-            aps {
-                alert {
-                    body = "Hello"
-                    subtitle = "Subtitle"
+    private fun createCredentialsAndPush(payload: Payload): (CredentialsManager) -> Unit {
+        return {
+            it.credentials()
+                .fold(
+                    reportError(),
+                    createOkClientAndPush(payload)
+                )
+        }
+    }
+
+    private fun createOkClientAndPush(payload: Payload): (Pair<SSLSocketFactory, X509TrustManager>) -> Unit {
+        return { socketFactoryAndTrustManager ->
+            logger.debug { "will create ok client with socket factory and trust manager" }
+            createOkClient(payload, socketFactoryAndTrustManager)
+                .fold(
+                    reportError(),
+                    pushAsyncAndWaitToFinish(payload)
+                )
+        }
+    }
+
+    private fun pushAsyncAndWaitToFinish(payload: Payload): (OkHttpClient) -> Unit {
+        return { okClient ->
+            val applePayload = payload.notificationAsString()
+
+            logger.debug { "the string representation of the payload will be push: $applePayload" }
+
+            val countDownLatch = CountDownLatch(payload.tokens.size)
+            logger.debug { "the payload will be pushed to total of ${payload.tokens.size} clients" }
+            val callBacks = mutableListOf<PlatformCallback>()
+
+            createURLAndRequestBody(payload) { baseUrl, body ->
+                payload.tokens.forEach { token ->
+                    createAPNSRequest(baseUrl, body, token)
+                        .fold(
+                            {
+                                logger.error { "could not create request for the token: $token with the error: ${it.message}" }
+                                requestErrorListener.report(Some(it))
+                                countDownLatch.countDown()
+                            },
+                            { request ->
+                                logger.info { "will push the payload: $applePayload to device with token: $token" }
+                                val responseCallback = PlatformCallback(token, countDownLatch)
+                                okClient.newCall(request).enqueue(responseCallback)
+                                callBacks.add(responseCallback)
+                            }
+                        )
                 }
             }
+
+            logger.debug { "will wait for all platform callbacks to report being done" }
+            countDownLatch.await()
+            logger.debug { "waiting for all platform callbacks is done" }
+
+            releaseResources(okClient)
+
+            callBacks.forEach { callBack ->
+                platformResponseListener.report(callBack.response)
+                requestErrorListener.report(callBack.requestError)
+            }
         }
-        custom = hashMapOf(
-            "custom-property" to "hello custom",
-            "blow-up" to true
-        )
-        tokens = arrayListOf("asdfsd", "sadfsdf")
-    } push {
-        println(it)
     }
 }

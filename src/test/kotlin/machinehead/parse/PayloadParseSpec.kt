@@ -1,6 +1,7 @@
 package machinehead.parse
 
 import com.google.gson.JsonParser
+import machinehead.extensions.notificationAsString
 import machinehead.model.payload
 import org.amshove.kluent.`should be equal to`
 import org.amshove.kluent.`should not be null`
@@ -24,7 +25,7 @@ class PayloadParseSpecSpec : Spek({
             )
         }.notificationAsString()
 
-        it("should contain the body and ") {
+        it("should contain the body and aps and alert dictionary ") {
             val notification = JsonParser().parse(stringNotification)
 
             val aps = notification.asJsonObject.getAsJsonObject("aps")

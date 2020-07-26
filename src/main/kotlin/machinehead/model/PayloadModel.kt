@@ -1,13 +1,14 @@
 package machinehead.model
 
 import com.google.gson.annotations.SerializedName
-import machinehead.servers.Platform
+import machinehead.servers.Stage
 
 class Payload(
-    var notification: Notification?,
-    var custom: HashMap<String, Any>,
+    var stage: Stage,
     var tokens: List<String>,
-    var platform: Platform
+    var headers: Map<String, Any>,
+    var notification: Notification?,
+    var custom: HashMap<String, Any>
 )
 
 data class Notification(var aps: Aps? = null)

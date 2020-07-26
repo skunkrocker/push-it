@@ -1,28 +1,15 @@
 package machinehead.parse
 
 import com.google.gson.GsonBuilder
-import machinehead.model.Payload
 
-data class ParseErrors(var credentialsError: String?, var noTokens: String?, var noAlert: String?)
+data class ParseErrors(
+    var noTopic: String?,
+    var noAlert: String?,
+    var noTokens: String?,
+    var credentialsError: String?,
+    var noCredentialsManager: String?
+)
 
-infix fun Payload.notificationAsString(onParsed: (notification: String) -> Unit) {
-    onParsed(notificationAsString())
-}
-
-fun Payload.notificationAsString(): String {
-    val gson = gson()
-    if (this.custom.isNotEmpty()) {
-        val notification = gson?.toJsonTree(this.notification)
-        for (custom in this.custom) {
-            val toJsonTree = gson.toJsonTree(custom.value)
-            notification?.asJsonObject?.add(custom.key, toJsonTree)
-        }
-        return gson?.toJson(notification).toString()
-    }
-    return gson?.toJson(this.notification).toString()
-}
-
-private fun gson() =
-    GsonBuilder()
-        .setPrettyPrinting()
-        .create()
+val gson = GsonBuilder()
+    .setPrettyPrinting()
+    .create()

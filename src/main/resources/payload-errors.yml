@@ -2,3 +2,9 @@ noAlert:
   "valid notification must include at least the alert dictionary with body set"
 noTokens:
   "payload must include the device tokens"
+credentialsError:
+  "could not create the ssl factory and trust manager with the provided credentials or credentials manager"
+noTopic:
+  "you have to provide the \"apns-topic\" in the headers of the payload. It is usually the bundle id of your App"
+noCredentialsManager:
+  "no credential manager instantiated"

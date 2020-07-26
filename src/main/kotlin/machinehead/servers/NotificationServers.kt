@@ -1,22 +1,23 @@
 package machinehead.servers
 
-enum class Platform {
-    IOS,
-    IOS_SANDBOX
+enum class Stage {
+    TEST,
+    PRODUCTION,
+    DEVELOPMENT
 }
 
 sealed class NotificationServers {
     companion object {
-        val DEVICE_PATH = "/3/device/"
-        var PRODUCTION = "https://api.push.apple.com:2197"
-        var DEVELOPMENT = "https://api.development.push.apple.com:2197"
+        const val DEVICE_PATH = "/3/device/"
 
+        private const val PRODUCTION_URL = "https://api.push.apple.com:2197"
+        private const val DEVELOPMENT_URL = "https://api.development.push.apple.com:2197"
 
-        fun getURLForDeviceToken(deviceToken: String?, platform: Platform?, forUrl: (String) -> Unit) {
-            when (platform) {
-                Platform.IOS -> forUrl(PRODUCTION + DEVICE_PATH + deviceToken)
-                Platform.IOS_SANDBOX -> forUrl(DEVELOPMENT + DEVICE_PATH + deviceToken)
+        fun urlForStage(stage: Stage?): String =
+            when (stage) {
+                Stage.PRODUCTION -> PRODUCTION_URL + DEVICE_PATH
+                Stage.DEVELOPMENT -> DEVELOPMENT_URL + DEVICE_PATH
+                else -> System.getProperty("localhost.url") + DEVICE_PATH
             }
-        }
     }
 }
