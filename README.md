@@ -99,7 +99,7 @@ fun main() {
 
 ### Plans for next versions
 - Use Kotlin coroutines
-- Use Retrofit
+- Use Retrofit (optional)
 - Android push notifications
 - Build chain
 - Maven and jCentral artifact
