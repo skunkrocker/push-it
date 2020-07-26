@@ -101,4 +101,5 @@ fun main() {
 - Use Kotlin coroutines
 - Use Retrofit (optional)
 - Android push notifications
+- Build chain
 - Maven and jCentral artifact
