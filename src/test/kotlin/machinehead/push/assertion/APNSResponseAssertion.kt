@@ -1,30 +1,26 @@
 package machinehead.push.assertion
 
-import com.google.gson.JsonParser
+import machinehead.model.APNSResponse
 import machinehead.model.PushResult
 import machinehead.model.ResponsesLoader
-import org.junit.jupiter.api.Assertions
+import machinehead.parse.gson
+import org.junit.jupiter.api.Assertions.assertEquals
 
 open class APNSResponseAssertion {
     fun assertResponse(platformResponses: List<PushResult>, expectedResponse: String) {
-        val jsonParser = JsonParser()
-
         val size = platformResponses.size
-        Assertions.assertEquals(1, size)
+        assertEquals(1, size)
 
         platformResponses.forEach {
-            Assertions.assertEquals(400, it.response.status.toInt())
-            val apnsReason = jsonParser
-                .parse(it.response.message)
-                .asJsonObject.get("reason")
-                .asString
+            assertEquals(400, it.response.status)
+            val apnsReason = it.response.apns.reason
 
-            val expectedReason = jsonParser
-                .parse(ResponsesLoader.getJson(expectedResponse))
-                .asJsonObject.get("reason")
-                .asString
+            val expected = gson
+                .fromJson(
+                    ResponsesLoader.getJson(expectedResponse), APNSResponse::class.java
+                )
 
-            Assertions.assertEquals(expectedReason, apnsReason)
+            assertEquals(expected.reason, apnsReason)
         }
     }
 }

@@ -3,8 +3,9 @@ package machinehead.model
 import arrow.core.Option
 
 data class ClientError(val message: String)
+data class APNSResponse(val reason: String)
 data class RequestError(val token: String, val message: String)
-data class PlatformResponse(val status: String, val message: String)
+data class PlatformResponse(val status: Int, val apns: APNSResponse)
 data class PushResult(val token: String, val response: PlatformResponse)
 
 
@@ -14,7 +15,6 @@ class ClientErrorListener {
         clientErrorList.add(error)
     }
 
-    val hasErrors: Boolean get() = clientErrorList.isNotEmpty()
     val clientErrors: List<ClientError> get() = clientErrorList
 }
 

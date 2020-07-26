@@ -11,16 +11,15 @@ infix fun Payload.notificationAsString(onParsed: (notification: String) -> Unit)
 }
 
 fun Payload.notificationAsString(): String {
-    val gson = gson()
     if (this.custom.isNotEmpty()) {
-        val notification = gson?.toJsonTree(this.notification)
+        val notification = gson.toJsonTree(this.notification)
         for (custom in this.custom) {
             val toJsonTree = gson.toJsonTree(custom.value)
             notification?.asJsonObject?.add(custom.key, toJsonTree)
         }
-        return gson?.toJson(notification).toString()
+        return gson.toJson(notification).toString()
     }
-    return gson?.toJson(this.notification).toString()
+    return gson.toJson(this.notification).toString()
 }
 
 infix fun Payload.push(report: (ResponsesAndErrors) -> Unit) {
