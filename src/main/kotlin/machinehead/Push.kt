@@ -5,6 +5,7 @@ import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
 import machinehead.extensions.notificationAsString
+import machinehead.extensions.pushk
 import machinehead.extensions.reportCredentialsManagerError
 import machinehead.extensions.reportError
 import machinehead.model.*
@@ -17,6 +18,7 @@ import machinehead.okclient.OkClientWithCredentials.Companion.releaseResources
 import machinehead.okclient.PayloadValidator.Companion.validate
 import machinehead.okclient.PlatformCallback
 import machinehead.parse.ParseErrors
+import machinehead.servers.Stage
 import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import java.util.concurrent.CountDownLatch
@@ -116,5 +118,39 @@ class PushIt {
                 requestErrorListener.report(callBack.requestError)
             }
         }
+    }
+}
+fun main() {
+    val logger = KotlinLogging.logger { }
+    /*
+    val theTokens = mutableListOf<String>()
+    repeat(1000) {
+        if (it % 2 == 0)
+            theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
+        else
+            theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54")
+    }
+    */
+    payload {
+        notification {
+            aps {
+                alert {
+                    body = "Hello"
+                    subtitle = "Subtitle"
+                }
+            }
+        }
+        headers = hashMapOf(
+            "apns-topic" to "org.your.app.bundle.id"
+        )
+        custom = hashMapOf(
+            "custom-property" to "hello custom",
+            "blow-up" to true
+        )
+        stage = Stage.DEVELOPMENT
+        tokens = listOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54")
+
+    }.pushk { errorAndResponses ->
+        println("what ever")
     }
 }
