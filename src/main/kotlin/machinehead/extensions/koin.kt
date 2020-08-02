@@ -26,25 +26,25 @@ class ValidatePayloadServiceImpl : ValidatePayloadService {
     }
 }
 
-interface PushingService {
-    fun with(payload: Payload)
-}
-
-class PushingServiceImpl : PushingService {
+class PushApp {
     private val validatePayloadService by inject(ValidatePayloadService::class.java)
 
-    override fun with(payload: Payload) {
+    fun with(payload: Payload) {
         validatePayloadService
             .isValid(payload)
             .fold(
                 {
                     val list = mutableListOf<PushNotification>()
-                    for (i in 2 downTo 1) {
-                        val notification = get(PushNotification::class.java)
-                        list.add(notification)
-                    }
+                    payload
+                        .tokens
+                        .forEach {
+                            val notification = get(PushNotification::class.java)
+                            notification.setToken(it)
+                            notification.push(payload)
+                            list.add(notification)
+                        }
+
                     list.forEach {
-                        it.push(payload)
                         println(it.getResult().response.apns.reason)
                     }
                 }, {
@@ -54,16 +54,16 @@ class PushingServiceImpl : PushingService {
     }
 }
 
-infix fun Payload.pushk(report: (ResponsesAndErrors) -> Unit) {
-    val modules = module {
-        single { CredentialsServiceImpl() as CredentialsService }
-        single { ValidatePayloadServiceImpl() as ValidatePayloadService }
+infix fun Payload.pushIt(report: (ResponsesAndErrors) -> Unit) {
+    val services = module {
         single { OkClientServiceImpl() as OkClientService }
         factory { PushNotificationImpl() as PushNotification }
+        single { CredentialsServiceImpl() as CredentialsService }
+        single { ValidatePayloadServiceImpl() as ValidatePayloadService }
     }
-    val app = startKoin {
-        modules(modules)
+    val appContext = startKoin {
+        modules(services)
     }
-    PushingServiceImpl().with(this)
-    app.close()
+    PushApp().with(this)
+    appContext.close()
 }

@@ -12,16 +12,23 @@ import org.koin.java.KoinJavaComponent.inject
 interface PushNotification {
     fun push(payload: Payload)
     fun getResult(): PushResult
+    fun setToken(token: String)
 }
 
 class PushNotificationImpl : PushNotification {
+    private lateinit var token: String
     private val credentials by inject(CredentialsService::class.java)
+
     override fun push(payload: Payload) {
         credentials.createCredentials()
-        println(payload.notificationAsString())
+        println("pushed token: $token")
     }
 
     override fun getResult(): PushResult {
-        return PushResult("", PlatformResponse(200, APNSResponse("Success")));
+        return PushResult(token, PlatformResponse(200, APNSResponse("Success")));
+    }
+
+    override fun setToken(token: String) {
+        this.token = token
     }
 }

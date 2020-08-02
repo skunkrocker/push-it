@@ -5,7 +5,7 @@ import arrow.core.toOption
 import machinehead.credentials.CredentialsManager
 import machinehead.credentials.P12CredentialsFromEnv
 import machinehead.extensions.notificationAsString
-import machinehead.extensions.pushk
+import machinehead.extensions.pushIt
 import machinehead.extensions.reportCredentialsManagerError
 import machinehead.extensions.reportError
 import machinehead.model.*
@@ -120,6 +120,7 @@ class PushIt {
         }
     }
 }
+
 fun main() {
     val logger = KotlinLogging.logger { }
     /*
@@ -148,9 +149,12 @@ fun main() {
             "blow-up" to true
         )
         stage = Stage.DEVELOPMENT
-        tokens = listOf("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54")
+        tokens = listOf(
+            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55",
+            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a51"
+        )
 
-    }.pushk { errorAndResponses ->
+    }.pushIt { errorAndResponses ->
         println("what ever")
     }
 }
