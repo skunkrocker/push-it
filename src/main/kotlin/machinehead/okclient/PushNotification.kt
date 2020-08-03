@@ -9,11 +9,9 @@ import org.koin.java.KoinJavaComponent.inject
 interface PushNotification {
     fun push(payload: Payload): PushResult
     fun getResult(): PushResult
-    fun setToken(token: String)
 }
 
-class PushNotificationImpl : PushNotification {
-    private lateinit var token: String
+class PushNotificationImpl(val token: String) : PushNotification {
 
     private val okClientService by inject(OkClientService::class.java)
 
@@ -24,9 +22,5 @@ class PushNotificationImpl : PushNotification {
 
     override fun getResult(): PushResult {
         return PushResult(token, PlatformResponse(200, APNSResponse("Success")));
-    }
-
-    override fun setToken(token: String) {
-        this.token = token
     }
 }

@@ -14,6 +14,7 @@ import org.koin.dsl.module
 import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.inject
 import machinehead.model.PushResult
+import org.koin.core.parameter.parametersOf
 
 interface ValidatePayloadService {
     fun isValid(payload: Payload): Option<ClientError>
@@ -49,8 +50,7 @@ class PushApp {
             payload.tokens.forEach {
                 deferredList.add(
                     async {
-                        val notification = get(PushNotification::class.java)
-                        notification.setToken(it)
+                        val notification = get(PushNotification::class.java) { parametersOf(it) }
                         notification.push(payload)
                     }
                 )
@@ -65,10 +65,10 @@ infix fun Payload.pushIt(report: (ResponsesAndErrors) -> Unit) {
     val headers = this.headers
     val services = module {
         single { OkClientServiceImpl() as OkClientService }
-        factory { PushNotificationImpl() as PushNotification }
         single { CredentialsServiceImpl() as CredentialsService }
         single { ValidatePayloadServiceImpl() as ValidatePayloadService }
         single { InterceptorChainServiceImpl(headers) as InterceptorChainService }
+        factory { (token: String) -> PushNotificationImpl(token) as PushNotification }
     }
     val appContext = startKoin {
         modules(services)
