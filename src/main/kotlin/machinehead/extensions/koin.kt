@@ -1,11 +1,8 @@
 package machinehead.extensions
 
-import arrow.core.None
-import arrow.core.Option
 import kotlinx.coroutines.*
 import machinehead.credentials.CredentialsService
 import machinehead.credentials.CredentialsServiceImpl
-import machinehead.model.ClientError
 import machinehead.model.Payload
 import machinehead.model.ResponsesAndErrors
 import machinehead.okclient.*
@@ -14,17 +11,9 @@ import org.koin.dsl.module
 import org.koin.java.KoinJavaComponent.get
 import org.koin.java.KoinJavaComponent.inject
 import machinehead.model.PushResult
+import machinehead.validation.ValidatePayloadService
+import machinehead.validation.ValidatePayloadServiceImpl
 import org.koin.core.parameter.parametersOf
-
-interface ValidatePayloadService {
-    fun isValid(payload: Payload): Option<ClientError>
-}
-
-class ValidatePayloadServiceImpl : ValidatePayloadService {
-    override fun isValid(payload: Payload): Option<ClientError> {
-        return None
-    }
-}
 
 class PushApp {
     private val validatePayloadService by inject(ValidatePayloadService::class.java)
