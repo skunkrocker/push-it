@@ -1,7 +1,14 @@
 package machinehead.credentials
 
+import machinehead.model.ClientError
+import javax.net.ssl.SSLSocketFactory
+import javax.net.ssl.X509TrustManager
+
 interface CredentialsService {
-    fun createCredentials()
+    fun createCredentials(
+        onCreate: (factory: SSLSocketFactory?, manager: X509TrustManager?) -> Unit,
+        onFail: (ClientError) -> Unit
+    )
 }
 
 class CredentialsServiceImpl() : CredentialsService {
@@ -10,7 +17,11 @@ class CredentialsServiceImpl() : CredentialsService {
         println(System.getenv("CERTIFICATE"))
     }
 
-    override fun createCredentials() {
+    override fun createCredentials(
+        onCreate: (factory: SSLSocketFactory?, manager: X509TrustManager?) -> Unit,
+        onFail: (ClientError) -> Unit
+    ) {
+        onCreate(null, null)
         println("certificate will be returned")
     }
 }
