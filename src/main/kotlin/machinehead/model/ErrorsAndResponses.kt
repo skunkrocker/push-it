@@ -43,8 +43,13 @@ class RequestErrorListener {
 }
 
 class ResponsesAndErrors(
-    val clientErrors: List<ClientError> = ArrayList(),
-    val requestErrors: List<RequestError> = ArrayList(),
-    var responses: List<PushResult> = ArrayList()
+    val clientErrors: List<ClientError> = mutableListOf(),
+    val requestErrors: List<RequestError> = mutableListOf(),
+    var responses: List<PushResult> = mutableListOf()
 )
 
+class ErrorsAndResponses(
+    val clientErrors: List<ClientError>,
+    val requestErrors: List<RequestError>,
+    var responses: List<PushResult>
+)
