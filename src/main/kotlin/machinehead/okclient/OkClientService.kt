@@ -18,14 +18,10 @@ class OkClientServiceImpl : OkClientService {
         Either.left(ClientError("failed to create ok http client"))
 
     init {
-        credentials.createCredentials(
-            { factory, manager ->
-                println("created the http client")
-                okHttpClient = Either.right(OkHttpClient())
-            },
-            {
-                okHttpClient = Either.left(it)
-            })
+        credentials.getFactoryAndManager { factory, manager ->
+            println("created the http client")
+            okHttpClient = Either.right(OkHttpClient())
+        }
     }
 
     override fun getHttpClient(): Either<ClientError, OkHttpClient> {
