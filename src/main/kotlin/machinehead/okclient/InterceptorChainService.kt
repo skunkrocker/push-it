@@ -6,11 +6,11 @@ import okhttp3.Request
 import okhttp3.Response
 
 interface InterceptorChainService {
-    fun createInterceptor(payload: Payload): (Interceptor.Chain) -> Response
+    fun createInterceptor(): (Interceptor.Chain) -> Response
 }
 
 class InterceptorChainServiceImpl(val headers: Map<String, Any>) : InterceptorChainService {
-    override fun createInterceptor(payload: Payload): (Interceptor.Chain) -> Response {
+    override fun createInterceptor(): (Interceptor.Chain) -> Response {
         return { chain: Interceptor.Chain ->
             val original: Request = chain.request()
             val responseBuilder: Request.Builder = original.newBuilder()

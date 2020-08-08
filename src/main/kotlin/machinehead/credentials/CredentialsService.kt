@@ -11,7 +11,7 @@ import javax.net.ssl.*
 
 interface CredentialsService {
     fun getFactoryAndManager(
-        credentials: (factory: SSLSocketFactory?, manager: X509TrustManager?) -> Unit
+        credentials: (factory: SSLSocketFactory, manager: X509TrustManager) -> Unit
     )
 }
 
@@ -39,7 +39,7 @@ class CredentialsServiceImpl() : CredentialsService {
         manager = factoryAndManager.second
     }
 
-    override fun getFactoryAndManager(credentials: (factory: SSLSocketFactory?, manager: X509TrustManager?) -> Unit) {
+    override fun getFactoryAndManager(credentials: (factory: SSLSocketFactory, manager: X509TrustManager) -> Unit) {
         credentials(factory, manager)
     }
 

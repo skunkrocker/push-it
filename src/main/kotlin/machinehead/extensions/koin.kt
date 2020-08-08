@@ -10,6 +10,9 @@ import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import machinehead.validation.ValidatePayloadService
 import machinehead.validation.ValidatePayloadServiceImpl
+import org.koin.core.parameter.parametersOf
+import org.koin.java.KoinJavaComponent
+import org.koin.java.KoinJavaComponent.get
 
 infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
     val headers = this.headers
@@ -26,5 +29,8 @@ infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) 
     PushApp().with(this) {
         report(it)
     }
+
+    get(OkClientService::class.java)
+        .releaseResources()
     appContext.close()
 }

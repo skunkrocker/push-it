@@ -162,4 +162,5 @@ fun main() {
                 logger.info { "errors: ${it.errors} and results: ${it.results}" }
             })
     }
+    logger.info { "its done" }
 }
