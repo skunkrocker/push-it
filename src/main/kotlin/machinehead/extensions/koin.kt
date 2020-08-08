@@ -53,35 +53,38 @@ class PushApp {
                                 }
                             )
                         }
+
                     val results = deferredList.awaitAll()
-
-                    val pushResults = mutableListOf<PushResult>()
-                    val requestErrors = mutableListOf<RequestError>()
-
-                    results
-                        .parallelStream()
-                        .forEach {
-                            it.fold({ error ->
-                                requestErrors.add(error)
-                            }, { result ->
-                                pushResults.add(result)
-                            })
-                        }
-
-                    report(Either.right(RequestErrorsAndResults(requestErrors, pushResults)))
-
-
+                    report(Either.right(requestErrorsAndResponses(results)))
                 }
             } catch (e: Throwable) {
-                when (e) {
-                    is ClientCreationException -> {
-                        val error: ClientCreationException = e as ClientCreationException
-                        report(Either.left(error.clientError))
-                    }
-                    else -> {
-                        report(Either.left(ClientError("unknown error happened. see the logs")))
-                    }
-                }
+                reportError(e, report)
+            }
+        }
+
+    private fun requestErrorsAndResponses(results: List<Either<RequestError, PushResult>>): RequestErrorsAndResults {
+        val pushResults = mutableListOf<PushResult>()
+        val requestErrors = mutableListOf<RequestError>()
+
+        results
+            .parallelStream()
+            .forEach {
+                it.fold({ error ->
+                    requestErrors.add(error)
+                }, { result ->
+                    pushResults.add(result)
+                })
+            }
+        return RequestErrorsAndResults(requestErrors, pushResults)
+    }
+
+    private fun reportError(error: Throwable, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) =
+        when (error) {
+            is ClientCreationException -> {
+                report(Either.left(error.clientError))
+            }
+            else -> {
+                report(Either.left(ClientError("unknown error happened. see the logs")))
             }
         }
 }
