@@ -42,26 +42,32 @@ class PushApp {
                 val deferredList = mutableListOf<Deferred<Either<RequestError, PushResult>>>()
 
                 coroutineScope {
-                    payload.tokens.forEach {
-                        deferredList.add(
-                            async {
-                                val notification = get(PushNotification::class.java) { parametersOf(it) }
-                                notification.push(payload)
-                            }
-                        )
-                    }
+                    payload
+                        .tokens
+                        .parallelStream()
+                        .forEach {
+                            deferredList.add(
+                                async {
+                                    val notification = get(PushNotification::class.java) { parametersOf(it) }
+                                    notification.push(payload)
+                                }
+                            )
+                        }
                     val results = deferredList.awaitAll()
 
                     val pushResults = mutableListOf<PushResult>()
                     val requestErrors = mutableListOf<RequestError>()
 
-                    results.forEach {
-                        it.fold({ error ->
-                            requestErrors.add(error)
-                        }, { result ->
-                            pushResults.add(result)
-                        })
-                    }
+                    results
+                        .parallelStream()
+                        .forEach {
+                            it.fold({ error ->
+                                requestErrors.add(error)
+                            }, { result ->
+                                pushResults.add(result)
+                            })
+                        }
+
                     report(Either.right(RequestErrorsAndResults(requestErrors, pushResults)))
 
 

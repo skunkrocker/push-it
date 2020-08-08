@@ -159,9 +159,7 @@ fun main() {
             .fold({
                 logger.error { it.message }
             }, {
-                logger.info { it.errors }
+                logger.info { "errors: ${it.errors} and results: ${it.results}" }
             })
     }
-
-    logger.info { "SOMETHING ELSE IS GOING ON" }
 }
