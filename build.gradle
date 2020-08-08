@@ -40,6 +40,8 @@ dependencies {
     testCompile group: 'com.squareup.okhttp', name: 'mockwebserver', version: '1.2.1'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter', version: '5.6.2'
 }
+sourceCompatibility = JavaVersion.VERSION_11
+targetCompatibility = JavaVersion.VERSION_11
 
 compileKotlin {
     kotlinOptions.jvmTarget = "11"

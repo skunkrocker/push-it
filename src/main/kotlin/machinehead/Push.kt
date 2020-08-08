@@ -154,7 +154,14 @@ fun main() {
             "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a51"
         )
 
-    }.pushIt { errorAndResponses ->
-        println("what ever")
+    } pushIt { errorsAndResponses ->
+        errorsAndResponses
+            .fold({
+                logger.error { it.message }
+            }, {
+                logger.info { it.errors }
+            })
     }
+
+    logger.info { "SOMETHING ELSE IS GOING ON" }
 }

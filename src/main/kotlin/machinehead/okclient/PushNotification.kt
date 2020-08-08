@@ -1,6 +1,7 @@
 package machinehead.okclient
 
 import arrow.core.Either
+import machinehead.exceptions.ClientCreationException
 import machinehead.model.*
 import org.koin.java.KoinJavaComponent.inject
 
@@ -14,8 +15,11 @@ class PushNotificationImpl(val token: String) : PushNotification {
 
     override fun push(payload: Payload): Either<RequestError, PushResult> {
         okClientService.getHttpClient()
+        /*
         val pushResult = PushResult(token, PlatformResponse(200, APNSResponse("Success")))
 
         return Either.right(pushResult)
+        */
+        throw ClientCreationException(ClientError("something went wrong with creating the client for push notification"))
     }
 }

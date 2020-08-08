@@ -4,6 +4,7 @@ import arrow.core.Either
 import kotlinx.coroutines.*
 import machinehead.credentials.CredentialsService
 import machinehead.credentials.CredentialsServiceImpl
+import machinehead.exceptions.ClientCreationException
 import machinehead.model.*
 import machinehead.okclient.*
 import org.koin.core.context.startKoin
@@ -17,51 +18,69 @@ import org.koin.core.parameter.parametersOf
 class PushApp {
     private val validatePayloadService by inject(ValidatePayloadService::class.java)
 
-    fun with(payload: Payload, report: (ErrorsAndResponses) -> Unit) {
+    fun with(payload: Payload, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
         validatePayloadService
             .isValid(payload)
             .fold(
                 {
-                    val pushResults = mutableListOf<PushResult>()
-                    val requestErrors = mutableListOf<RequestError>()
-
-                    performPush(payload) { pushErrorOrResult ->
-                        pushErrorOrResult.forEach {
-                            it.fold({ error ->
-                                requestErrors.add(error)
-                            }, { result ->
-                                pushResults.add(result)
-                            })
-                        }
+                    performPush(payload) { errorAndResults ->
+                        errorAndResults.fold({
+                            report(Either.left(it))
+                        }, {
+                            report(Either.right(it))
+                        })
                     }
-
-                    report(ErrorsAndResponses(emptyList(), requestErrors, pushResults))
-
                 }, {
-                    report(ErrorsAndResponses(listOf(it), emptyList(), emptyList()))
+                    report(Either.left(it))
                 }
             )
     }
 
-    private fun performPush(payload: Payload, report: (List<Either<RequestError, PushResult>>) -> Unit) = runBlocking {
-        val deferredList = mutableListOf<Deferred<Either<RequestError, PushResult>>>()
+    private fun performPush(payload: Payload, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) =
+        runBlocking {
+            try {
+                val deferredList = mutableListOf<Deferred<Either<RequestError, PushResult>>>()
 
-        coroutineScope {
-            payload.tokens.forEach {
-                deferredList.add(
-                    async {
-                        val notification = get(PushNotification::class.java) { parametersOf(it) }
-                        notification.push(payload)
+                coroutineScope {
+                    payload.tokens.forEach {
+                        deferredList.add(
+                            async {
+                                val notification = get(PushNotification::class.java) { parametersOf(it) }
+                                notification.push(payload)
+                            }
+                        )
                     }
-                )
+                    val results = deferredList.awaitAll()
+
+                    val pushResults = mutableListOf<PushResult>()
+                    val requestErrors = mutableListOf<RequestError>()
+
+                    results.forEach {
+                        it.fold({ error ->
+                            requestErrors.add(error)
+                        }, { result ->
+                            pushResults.add(result)
+                        })
+                    }
+                    report(Either.right(RequestErrorsAndResults(requestErrors, pushResults)))
+
+
+                }
+            } catch (e: Throwable) {
+                when (e) {
+                    is ClientCreationException -> {
+                        val error: ClientCreationException = e as ClientCreationException
+                        report(Either.left(error.clientError))
+                    }
+                    else -> {
+                        report(Either.left(ClientError("unknown error happened. see the logs")))
+                    }
+                }
             }
-            val results = deferredList.awaitAll()
-            report(results)
         }
-    }
 }
 
-infix fun Payload.pushIt(report: (ErrorsAndResponses) -> Unit) {
+infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
     val headers = this.headers
     val services = module {
         single { OkClientServiceImpl() as OkClientService }

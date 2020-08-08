@@ -8,6 +8,10 @@ data class RequestError(val token: String, val message: String)
 data class PlatformResponse(val status: Int, val apns: APNSResponse)
 data class PushResult(val token: String, val response: PlatformResponse)
 
+class RequestErrorsAndResults(
+    val errors: List<RequestError>,
+    var results: List<PushResult>
+)
 
 class ClientErrorListener {
     private val clientErrorList = mutableListOf<ClientError>()
