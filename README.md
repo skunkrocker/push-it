@@ -1,8 +1,5 @@
 # push-it
 ### General
-This project is first and foremost my playground to learn the Kotlin language.
-It is fully functional project that can be used to push iOS notifications to Apple devices using Kotlin.
-It may or may not be usable for Java, I have never tried to use it from within Java project.
 The project is tested on live iOS devices registered on APNS Sandbox and never with the APNS Production stage.
 Since pushing on APNS Production is only changing the URL for the service, this should as well work for Production.
 Artifact on Maven or jCentral may come with the time, for now include the built jar into your local Artifactory. 
@@ -99,6 +96,7 @@ fun main() {
 
 ### Plans for next versions
 - Use Kotlin coroutines
+- Use DI with Koin
 - Use Retrofit (optional)
 - Android push notifications
 - Maven and jCentral artifact
