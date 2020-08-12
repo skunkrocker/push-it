@@ -7,7 +7,6 @@ import machinehead.parse.gson
 import machinehead.servers.NotificationServers
 import machinehead.servers.Stage
 import mu.KotlinLogging
-import okhttp3.Callback
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.Response
