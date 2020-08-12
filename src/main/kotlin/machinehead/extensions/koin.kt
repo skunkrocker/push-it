@@ -6,10 +6,12 @@ import machinehead.credentials.CredentialsService
 import machinehead.credentials.CredentialsServiceImpl
 import machinehead.model.*
 import machinehead.okclient.*
+import machinehead.servers.Stage
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
 import machinehead.validation.ValidatePayloadService
 import machinehead.validation.ValidatePayloadServiceImpl
+import okhttp3.RequestBody
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent
 import org.koin.java.KoinJavaComponent.get
@@ -21,7 +23,13 @@ infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) 
         single { CredentialsServiceImpl() as CredentialsService }
         single { ValidatePayloadServiceImpl() as ValidatePayloadService }
         single { InterceptorChainServiceImpl(headers) as InterceptorChainService }
-        factory { (token: String) -> PushNotificationImpl(token) as PushNotification }
+        factory { (token: String, stage: Stage, body: RequestBody) ->
+            PushNotificationImpl(
+                token,
+                stage,
+                body
+            ) as PushNotification
+        }
     }
     val appContext = startKoin {
         modules(services)

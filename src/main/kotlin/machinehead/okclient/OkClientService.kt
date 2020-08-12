@@ -1,6 +1,9 @@
 package machinehead.okclient
 
 import arrow.core.Either
+import arrow.core.None
+import arrow.core.Option
+import arrow.core.Some
 import machinehead.credentials.CredentialsService
 import machinehead.exceptions.ClientCreationException
 import machinehead.model.ClientError
@@ -11,7 +14,7 @@ import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
 interface OkClientService {
-    fun getHttpClient(): Either<ClientError, OkHttpClient>
+    fun getHttpClient(): Option<OkHttpClient>
     fun releaseResources()
 }
 
@@ -21,17 +24,16 @@ class OkClientServiceImpl : OkClientService {
 
     private val logger = KotlinLogging.logger { }
 
-    private var okHttpClient: Either<ClientError, OkHttpClient> =
-        Either.left(ClientError("failed to create ok http client"))
+    private var okHttpClient: Option<OkHttpClient> = None
 
     init {
         credentials.getFactoryAndManager { factory, manager ->
             println("created the http client")
-            okHttpClient = Either.right(createOkClient(factory, manager))
+            okHttpClient = Some(createOkClient(factory, manager))
         }
     }
 
-    override fun getHttpClient(): Either<ClientError, OkHttpClient> {
+    override fun getHttpClient(): Option<OkHttpClient> {
         return okHttpClient
     }
 

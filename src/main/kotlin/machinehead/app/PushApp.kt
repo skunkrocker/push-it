@@ -3,9 +3,14 @@ package machinehead.app
 import arrow.core.Either
 import kotlinx.coroutines.*
 import machinehead.exceptions.ClientCreationException
+import machinehead.extensions.notificationAsString
 import machinehead.model.*
 import machinehead.okclient.PushNotification
 import machinehead.validation.ValidatePayloadService
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent
 
@@ -35,14 +40,25 @@ class PushApp {
             try {
                 val deferredList = mutableListOf<Deferred<Either<RequestError, PushResult>>>()
 
+                val mediaType: MediaType = "application/json; charset=utf-8".toMediaType()
+                val body: RequestBody = payload
+                    .notificationAsString()
+                    .toRequestBody(mediaType)
+
                 coroutineScope {
                     payload
                         .tokens
                         .parallelStream()
-                        .forEach {
+                        .forEach { token ->
                             deferredList.add(
                                 async {
-                                    val notification = KoinJavaComponent.get(PushNotification::class.java) { parametersOf(it) }
+                                    val notification = KoinJavaComponent.get(PushNotification::class.java) {
+                                        parametersOf(
+                                            token,
+                                            payload.stage,
+                                            body
+                                        )
+                                    }
                                     notification.push(payload)
                                 }
                             )

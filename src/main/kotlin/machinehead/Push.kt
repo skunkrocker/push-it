@@ -24,6 +24,8 @@ import okhttp3.OkHttpClient
 import java.util.concurrent.CountDownLatch
 import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
+import kotlin.time.ExperimentalTime
+import kotlin.time.measureTime
 
 class PushIt {
 
@@ -121,9 +123,9 @@ class PushIt {
     }
 }
 
+@ExperimentalTime
 fun main() {
     val logger = KotlinLogging.logger { }
-    /*
     val theTokens = mutableListOf<String>()
     repeat(1000) {
         if (it % 2 == 0)
@@ -131,36 +133,41 @@ fun main() {
         else
             theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a54")
     }
-    */
-    payload {
-        notification {
-            aps {
-                alert {
-                    body = "Hello"
-                    subtitle = "Subtitle"
+    val time = measureTime {
+        payload {
+            notification {
+                aps {
+                    alert {
+                        body = "Hello"
+                        subtitle = "Subtitle"
+                    }
                 }
             }
-        }
-        headers = hashMapOf(
-            "apns-topic" to "org.your.app.bundle.id"
-        )
-        custom = hashMapOf(
-            "custom-property" to "hello custom",
-            "blow-up" to true
-        )
-        stage = Stage.DEVELOPMENT
-        tokens = listOf(
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55",
-            "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a51"
-        )
+            headers = hashMapOf(
+                "apns-topic" to "org.your.app.bundle.id"
+            )
+            custom = hashMapOf(
+                "custom-property" to "hello custom",
+                "blow-up" to true
+            )
+            stage = Stage.DEVELOPMENT
+            /*
+            tokens = listOf(
+                "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55",
+                "3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a51"
+            )
+            */
+            tokens = theTokens
 
-    } pushIt { errorsAndResponses ->
-        errorsAndResponses
-            .fold({
-                logger.error { it.message }
-            }, {
-                logger.info { "errors: ${it.errors} and results: ${it.results}" }
-            })
+        } pushIt { errorsAndResponses ->
+            errorsAndResponses
+                .fold({
+                    logger.error { it.message }
+                }, {
+                    logger.info { "errors: ${it.errors} and results: ${it.results}" }
+                })
+        }
     }
+    logger.info { time }
     logger.info { "its done" }
 }
