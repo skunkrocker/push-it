@@ -3,11 +3,13 @@ package machinehead.okclient
 import arrow.core.Either
 import machinehead.extensions.isNotNullOrEmpty
 import machinehead.model.*
+import machinehead.parse.gson
 import machinehead.servers.NotificationServers
 import machinehead.servers.Stage
 import mu.KotlinLogging
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.Response
 import org.koin.java.KoinJavaComponent.inject
 
 interface PushNotification {
@@ -26,12 +28,22 @@ class PushNotificationImpl(val token: String, val stage: Stage, val body: Reques
                 createRequest()
                     .fold({
                         return@map Either.left(it)
-                    }, {
-
-                        //okHttpClient.newCall(it).execute()
-
-                        val pushResult = PushResult(token, PlatformResponse(200, APNSResponse("Success")))
-                        return@map Either.right(pushResult)
+                    }, { request ->
+                        var response: Response? = null
+                        try {
+                            response = okHttpClient.newCall(request).execute()
+                            val pushResponse = getPlatformResponse(response)
+                            return@map Either.right(PushResult(token, pushResponse))
+                        } catch (e: Exception) {
+                            return@map Either.left(
+                                RequestError(
+                                    token,
+                                    "failed to execute request with exception ${e.message}"
+                                )
+                            )
+                        } finally {
+                            response?.close()
+                        }
                     })
             }.orNull()!!
     }
@@ -62,5 +74,17 @@ class PushNotificationImpl(val token: String, val stage: Stage, val body: Reques
             logger.warn { "if you didn't do this for test purposes, please remove the property 'localhost.url' from your ENV" }
         }
         return url
+    }
+
+    private fun getPlatformResponse(response: Response) =
+        PlatformResponse(response.code, getAPNSResponse(response))
+
+    private fun getAPNSResponse(response: Response): APNSResponse {
+        val body = response.body?.string().orEmpty()
+
+        if (body.isNotEmpty()) {
+            return gson.fromJson(body, APNSResponse::class.java)
+        }
+        return gson.fromJson("{\"reason\":\"Success\"}", APNSResponse::class.java)
     }
 }
