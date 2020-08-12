@@ -14,7 +14,7 @@ import javax.net.ssl.SSLSocketFactory
 import javax.net.ssl.X509TrustManager
 
 interface OkClientService {
-    fun getHttpClient(): Option<OkHttpClient>
+    fun getHttpClient(): OkHttpClient
     fun releaseResources()
 }
 
@@ -24,33 +24,28 @@ class OkClientServiceImpl : OkClientService {
 
     private val logger = KotlinLogging.logger { }
 
-    private var okHttpClient: Option<OkHttpClient> = None
+    private var okHttpClient: OkHttpClient? = null
 
     init {
         credentials.getFactoryAndManager { factory, manager ->
-            println("created the http client")
-            okHttpClient = Some(createOkClient(factory, manager))
+            okHttpClient = createOkClient(factory, manager)
         }
     }
 
-    override fun getHttpClient(): Option<OkHttpClient> {
-        return okHttpClient
+    override fun getHttpClient(): OkHttpClient {
+        return okHttpClient!!
     }
 
     override fun releaseResources() {
-        this.getHttpClient()
-            .map { okClient ->
-                val dispatcher = okClient.dispatcher
-                if (dispatcher.queuedCallsCount() == 0 && dispatcher.runningCallsCount() == 0) {
-                    okClient.dispatcher.executorService.shutdownNow()
-                    logger.debug { "ok client executor service shutting down" }
-                    okClient.connectionPool.evictAll()
-                    logger.debug { "ok client evict all from connection pool" }
-                    okClient.cache?.close()
-                    logger.debug { "ok client clean cache" }
-
-                }
-            }
+        val dispatcher = okHttpClient?.dispatcher
+        if (dispatcher?.queuedCallsCount() == 0 && dispatcher.runningCallsCount() == 0) {
+            okHttpClient?.dispatcher?.executorService?.shutdownNow()
+            logger.debug { "ok client executor service shutting down" }
+            okHttpClient?.connectionPool?.evictAll()
+            logger.debug { "ok client evict all from connection pool" }
+            okHttpClient?.cache?.close()
+            logger.debug { "ok client clean cache" }
+        }
     }
 
     private fun createOkClient(factory: SSLSocketFactory, manager: X509TrustManager): OkHttpClient {

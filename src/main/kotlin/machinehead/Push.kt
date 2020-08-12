@@ -127,7 +127,7 @@ class PushIt {
 fun main() {
     val logger = KotlinLogging.logger { }
     val theTokens = mutableListOf<String>()
-    repeat(1000) {
+    repeat(50) {
         if (it % 2 == 0)
             theTokens.add("3c2e55b1939ac0c8afbad36fc6724ab42463edbedb6abf7abdc7836487a81a55")
         else

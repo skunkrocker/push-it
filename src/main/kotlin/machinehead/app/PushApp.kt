@@ -7,6 +7,7 @@ import machinehead.extensions.notificationAsString
 import machinehead.model.*
 import machinehead.okclient.PushNotification
 import machinehead.validation.ValidatePayloadService
+import mu.KotlinLogging
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
@@ -16,6 +17,8 @@ import org.koin.java.KoinJavaComponent
 
 class PushApp {
     private val validatePayloadService by KoinJavaComponent.inject(ValidatePayloadService::class.java)
+
+    private val logger = KotlinLogging.logger { }
 
     fun with(payload: Payload, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
         validatePayloadService
@@ -63,11 +66,13 @@ class PushApp {
                                 }
                             )
                         }
-
+                    logger.info { "waiting for the results" }
                     val results = deferredList.awaitAll()
+                    logger.info { "all results are finished" }
                     report(Either.right(requestErrorsAndResponses(results)))
                 }
             } catch (e: Throwable) {
+                logger.error { "aborting push notification. exception was: $e" }
                 reportError(e, report)
             }
         }

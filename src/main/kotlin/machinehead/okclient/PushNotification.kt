@@ -7,13 +7,14 @@ import machinehead.parse.gson
 import machinehead.servers.NotificationServers
 import machinehead.servers.Stage
 import mu.KotlinLogging
+import okhttp3.Callback
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.Response
 import org.koin.java.KoinJavaComponent.inject
 
 interface PushNotification {
-    fun push(payload: Payload): Either<RequestError, PushResult>
+    suspend fun push(payload: Payload): Either<RequestError, PushResult>
 }
 
 class PushNotificationImpl(val token: String, val stage: Stage, val body: RequestBody) : PushNotification {
@@ -22,30 +23,28 @@ class PushNotificationImpl(val token: String, val stage: Stage, val body: Reques
 
     val logger = KotlinLogging.logger() {}
 
-    override fun push(payload: Payload): Either<RequestError, PushResult> {
-        return okClientService.getHttpClient()
-            .map { okHttpClient ->
-                createRequest()
-                    .fold({
-                        return@map Either.left(it)
-                    }, { request ->
-                        var response: Response? = null
-                        try {
-                            response = okHttpClient.newCall(request).execute()
-                            val pushResponse = getPlatformResponse(response)
-                            return@map Either.right(PushResult(token, pushResponse))
-                        } catch (e: Exception) {
-                            return@map Either.left(
-                                RequestError(
-                                    token,
-                                    "failed to execute request with exception ${e.message}"
-                                )
-                            )
-                        } finally {
-                            response?.close()
-                        }
-                    })
-            }.orNull()!!
+    override suspend fun push(payload: Payload): Either<RequestError, PushResult> {
+        val httpClient = okClientService.getHttpClient()
+        createRequest()
+            .fold({
+                return Either.left(it)
+            }, { request ->
+                var response: Response? = null
+                try {
+                    response = httpClient.newCall(request).execute()
+                    val pushResponse = getPlatformResponse(response)
+                    return Either.right(PushResult(token, pushResponse))
+                } catch (e: Exception) {
+                    return Either.left(
+                        RequestError(
+                            token,
+                            "failed to execute request with exception ${e.message}"
+                        )
+                    )
+                } finally {
+                    response?.close()
+                }
+            })
     }
 
     private fun createRequest(): Either<RequestError, Request> {
