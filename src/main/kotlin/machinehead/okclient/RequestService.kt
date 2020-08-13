@@ -34,7 +34,7 @@ class RequestServiceImpl(val token: String, val body: RequestBody, val stage: St
 
     private fun createRequest(onError: (RequestError) -> Unit, onCreate: (Request) -> Unit) {
         try {
-            val url = getUrl() + "/$token"
+            val url = getUrl() + token
             logger.debug { "final push url is: $url" }
 
             val request = Request.Builder()
