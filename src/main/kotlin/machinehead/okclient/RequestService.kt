@@ -1,6 +1,5 @@
 package machinehead.okclient
 
-import arrow.core.Either
 import machinehead.extensions.isNotNullOrEmpty
 import machinehead.model.RequestError
 import machinehead.servers.NotificationServers
@@ -10,22 +9,30 @@ import okhttp3.Request
 import okhttp3.RequestBody
 
 interface RequestService {
-    fun get(): Request?
+    fun get(onError: (RequestError) -> Unit, get: (Request) -> Unit)
 }
 
 class RequestServiceImpl(val token: String, val body: RequestBody, val stage: Stage) : RequestService {
+
     private val logger = KotlinLogging.logger { }
+
     private var request: Request? = null
+    private var error: RequestError? = null
 
     init {
-        createRequest().map { request -> this.request = request }
+        createRequest({
+            error = it
+        }, {
+            request = it
+        })
     }
 
-    override fun get(): Request? {
-        return request
+    override fun get(onError: (RequestError) -> Unit, get: (Request) -> Unit) {
+        request?.let(get)
+        error?.let(onError)
     }
 
-    private fun createRequest(): Either<RequestError, Request> {
+    private fun createRequest(onError: (RequestError) -> Unit, onCreate: (Request) -> Unit) {
         try {
             val url = getUrl() + "/$token"
             logger.debug { "final push url is: $url" }
@@ -35,11 +42,11 @@ class RequestServiceImpl(val token: String, val body: RequestBody, val stage: St
                 .post(body)
                 .build()
 
-            return Either.right(request)
+            onCreate(request)
         } catch (e: Exception) {
             logger.error { "failed to create request for the token: $token" }
+            onError(RequestError(token, "failed to create request for the token"))
         }
-        return Either.left(RequestError(token, "failed to create request for the token"))
     }
 
     private fun getUrl(): String {

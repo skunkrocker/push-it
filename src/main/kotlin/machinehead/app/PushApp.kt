@@ -1,6 +1,7 @@
 package machinehead.app
 
 import arrow.core.Either
+import arrow.core.Some
 import kotlinx.coroutines.*
 import machinehead.exceptions.ClientCreationException
 import machinehead.extensions.notificationAsString
@@ -41,15 +42,6 @@ class PushApp {
                             report(Either.right(it))
                         })
                     }
-                    /*
-                    performPush(payload) { errorAndResults ->
-                        errorAndResults.fold({
-                            report(Either.left(it))
-                        }, {
-                            report(Either.right(it))
-                        })
-                    }
-                    */
                 }, {
                     report(Either.left(it))
                 }
@@ -71,117 +63,55 @@ class PushApp {
 
             val start = Instant.now()
 
-            payload.tokens
-                .forEach { token ->
-                    val requestService = get(RequestService::class.java) {
-                        parametersOf(
-                            token,
-                            body,
-                            payload.stage
-                        )
-                    }
-                    val responseCallback = PlatformCallback(token, countDownLatch)
-                    //after testing lets deal with the optional request in a better way
-                    okClient.newCall(requestService.get()!!).enqueue(responseCallback)
-                    callBacks.add(responseCallback)
+            payload.tokens.forEach { token ->
+                get(RequestService::class.java) {
+                    parametersOf(
+                        token,
+                        body,
+                        payload.stage
+                    )
                 }
-
+                    .get(
+                        {
+                            val responseCallback = PlatformCallback(token, countDownLatch)
+                            responseCallback.requestError = Some(it)
+                            callBacks.add(responseCallback)
+                        }, { request ->
+                            val responseCallback = PlatformCallback(token, countDownLatch)
+                            okClient.newCall(request).enqueue(responseCallback)
+                            callBacks.add(responseCallback)
+                        }
+                    )
+            }
 
             logger.debug { "will wait for all platform callbacks to report being done" }
             countDownLatch.await()
-            logger.debug { "waiting for all platform callbacks is done" }
 
             val end = Instant.now()
-            logger.info { "waited for all in ${Duration.between(start, end).toSeconds()} s " }
+            logger.info { "it took  ${Duration.between(start, end).toSeconds()} s to push all the messages " }
 
             okClientService.releaseResources()
 
-            val pushResults = mutableListOf<PushResult>()
-            val requestErrors = mutableListOf<RequestError>()
-
-            callBacks.map { callBack ->
-                callBack.requestError.map { error ->
-                    requestErrors.add(error)
-                }
-                callBack.response.map { result ->
-                    pushResults.add(result)
-                }
-            }
-            report(Either.right(RequestErrorsAndResults(requestErrors, pushResults)))
+            report(Either.right(getRequestErrorsAndResults(callBacks)))
 
         } catch (e: Exception) {
-            //handle errors in a better way, or is this actually necessary
-            logger.error { e }
+            logger.error { "could not push messages $e" }
             report(Either.left(ClientError("exception happened: $e")))
         }
     }
 
-    private fun performPush(payload: Payload, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) =
-        runBlocking {
-            try {
-                val mediaType: MediaType = "application/json; charset=utf-8".toMediaType()
-                val body: RequestBody = payload
-                    .notificationAsString()
-                    .toRequestBody(mediaType)
-                logger.info { "body created" }
-                val notifications = payload.tokens
-                    .map { token ->
-                        get(PushNotification::class.java) {
-                            parametersOf(
-                                token,
-                                payload.stage,
-                                body
-                            )
-                        }
-                    }
-                logger.info { "the notification instances were created: ${notifications.size}" }
-                coroutineScope {
-                    logger.info { "now pushing and waiting for results" }
-
-                    val start = Instant.now()
-                    val results = notifications.map { notification ->
-                        async {
-                            notification.push(payload)
-                        }
-                    }.awaitAll()
-
-                    val end = Instant.now()
-
-                    logger.info { "waited for all in ${Duration.between(start, end).toSeconds()} s " }
-
-                    //val results = differedNotifications.awaitAll()//deferredList.awaitAll()
-                    logger.info { "all pushes are finished, results number: ${results.size}" }
-                    report(Either.right(requestErrorsAndResponses(results)))
-                }
-            } catch (e: Throwable) {
-                logger.error { "aborting push notification. exception was: $e" }
-                reportError(e, report)
-            }
-        }
-
-    private fun requestErrorsAndResponses(results: List<Either<RequestError, PushResult>>): RequestErrorsAndResults {
+    private fun getRequestErrorsAndResults(callBacks: MutableList<PlatformCallback>): RequestErrorsAndResults {
         val pushResults = mutableListOf<PushResult>()
         val requestErrors = mutableListOf<RequestError>()
 
-        results
-            .parallelStream()
-            .forEach {
-                it.fold({ error ->
-                    requestErrors.add(error)
-                }, { result ->
-                    pushResults.add(result)
-                })
+        callBacks.map { callBack ->
+            callBack.requestError.map { error ->
+                requestErrors.add(error)
             }
-        return RequestErrorsAndResults(requestErrors, pushResults)
-    }
-
-    private fun reportError(error: Throwable, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) =
-        when (error) {
-            is ClientCreationException -> {
-                report(Either.left(error.clientError))
-            }
-            else -> {
-                report(Either.left(ClientError("unknown error happened. see the logs")))
+            callBack.response.map { result ->
+                pushResults.add(result)
             }
         }
+        return RequestErrorsAndResults(requestErrors, pushResults)
+    }
 }
