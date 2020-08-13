@@ -158,11 +158,7 @@ fun main() {
         */
         tokens = theTokens
 
-    } push {
-        logger.info { it.responses.size }
-    }
-    /*
-        .pushIt { errorsAndResponses ->
+    } pushIt { errorsAndResponses ->
         errorsAndResponses
             .fold({
                 logger.error { it.message }
@@ -170,7 +166,11 @@ fun main() {
                 logger.info { "errors: ${it.errors} and results: ${it.results}" }
             })
     }
-    */
+    /*
+        .push {
+        logger.info { it.responses.size }
+    }*/
+
     val end = Instant.now()
     logger.info { "duration time: ${Duration.between(start, end).toSeconds()} s" }
     logger.info { "its done" }

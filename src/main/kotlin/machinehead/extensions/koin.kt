@@ -30,6 +30,9 @@ infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) 
                 body
             ) as PushNotification
         }
+        factory { (token: String, body: RequestBody, stage: Stage) ->
+            RequestServiceImpl(token, body, stage) as RequestService
+        }
     }
     val appContext = startKoin {
         modules(services)
