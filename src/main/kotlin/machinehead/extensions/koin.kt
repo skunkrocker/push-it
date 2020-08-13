@@ -23,13 +23,6 @@ infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) 
         single { CredentialsServiceImpl() as CredentialsService }
         single { ValidatePayloadServiceImpl() as ValidatePayloadService }
         single { InterceptorChainServiceImpl(headers) as InterceptorChainService }
-        factory { (token: String, stage: Stage, body: RequestBody) ->
-            PushNotificationImpl(
-                token,
-                stage,
-                body
-            ) as PushNotification
-        }
         factory { (token: String, body: RequestBody, stage: Stage) ->
             RequestServiceImpl(token, body, stage) as RequestService
         }

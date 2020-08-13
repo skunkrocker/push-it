@@ -2,13 +2,10 @@ package machinehead.app
 
 import arrow.core.Either
 import arrow.core.Some
-import kotlinx.coroutines.*
-import machinehead.exceptions.ClientCreationException
 import machinehead.extensions.notificationAsString
 import machinehead.model.*
 import machinehead.okclient.OkClientService
 import machinehead.okclient.PlatformCallback
-import machinehead.okclient.PushNotification
 import machinehead.okclient.RequestService
 import machinehead.validation.ValidatePayloadService
 import mu.KotlinLogging
@@ -35,7 +32,7 @@ class PushApp {
             .isValid(payload)
             .fold(
                 {
-                    pushOldWay(payload) { errorAndResults ->
+                    pushNotification(payload) { errorAndResults ->
                         errorAndResults.fold({
                             report(Either.left(it))
                         }, {
@@ -48,7 +45,7 @@ class PushApp {
             )
     }
 
-    private fun pushOldWay(payload: Payload, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
+    private fun pushNotification(payload: Payload, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
         try {
             val okClient = okClientService.getHttpClient()
 

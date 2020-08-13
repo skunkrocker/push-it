@@ -2,6 +2,7 @@ package machinehead.push.headers
 
 import com.squareup.okhttp.mockwebserver.MockWebServer
 import machinehead.PushIt
+import machinehead.extensions.pushIt
 import machinehead.okclient.OkClientAPNSRequest
 import machinehead.push.responses.APNSHeaders.Companion.APNS_COLLAPSE_ID
 import machinehead.push.assertion.APNSResponseAssertion
@@ -33,25 +34,24 @@ class CollapseIdTest : APNSResponseAssertion() {
     @ExperimentalStdlibApi
     fun `collapse id is wrong - report apns message`() {
 
-        fun `priority header has invalid value - report apns message`() {
-            //given
-            val payload = TestData.`get test payload`(
-                TOKEN, hashMapOf(
-                    APNS_TOPIC_KEY to APNS_TOPIC_VALUE,
-                    APNS_COLLAPSE_ID to "11"
-                )
+        //given
+        TestData.`get test payload`(
+            TOKEN, hashMapOf(
+                APNS_TOPIC_KEY to APNS_TOPIC_VALUE,
+                APNS_COLLAPSE_ID to "11"
             )
-
-            //when
-            val pushIt = PushIt()
-            pushIt.with(payload)
-
-
+        ) pushIt { either ->
             //then
             mockWebServer.takeRequest()
 
-            val platformResponses = pushIt.platformResponseListener.platformResponses
-            assertResponse(platformResponses, "bad_collapse_id.json")
+            either.fold(
+                {
+                    Assertions.assertFalse(true)
+                },
+                { requestErrorsAndRequests ->
+                    assertResponse(requestErrorsAndRequests.results, "bad_collapse_id.json")
+                }
+            )
         }
 
         @AfterAll
