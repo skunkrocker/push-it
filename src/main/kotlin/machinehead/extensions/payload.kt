@@ -1,10 +1,22 @@
 package machinehead.extensions
 
-import machinehead.PushIt
+import arrow.core.Either
+import machinehead.app.PushApp
+import machinehead.credentials.CredentialsService
+import machinehead.credentials.CredentialsServiceImpl
+import machinehead.model.ClientError
 import machinehead.model.Payload
-import machinehead.model.ResponsesAndErrors
+import machinehead.model.RequestErrorsAndResults
+import machinehead.okclient.*
 import machinehead.parse.gson
-import mu.KotlinLogging
+import machinehead.servers.Stage
+import machinehead.validation.ValidatePayloadService
+import machinehead.validation.ValidatePayloadServiceImpl
+import okhttp3.RequestBody
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
+import org.koin.java.KoinJavaComponent
 
 infix fun Payload.notificationAsString(onParsed: (notification: String) -> Unit) {
     onParsed(notificationAsString())
@@ -22,19 +34,27 @@ fun Payload.notificationAsString(): String {
     return gson.toJson(this.notification).toString()
 }
 
-infix fun Payload.push(report: (ResponsesAndErrors) -> Unit) {
-    val logger = KotlinLogging.logger {}
+infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
+    val headers = this.headers
+    val services = module {
+        single { OkClientServiceImpl() as OkClientService }
+        single { CredentialsServiceImpl() as CredentialsService }
+        single { ValidatePayloadServiceImpl() as ValidatePayloadService }
+        single { InterceptorChainServiceImpl(headers) as InterceptorChainService }
+        factory { (token: String, body: RequestBody, stage: Stage) ->
+            RequestServiceImpl(token, body, stage) as RequestService
+        }
+    }
+    val appContext = startKoin {
+        modules(services)
+    }
+    PushApp().with(this) {
+        report(it)
+    }
 
-    val pushIt = PushIt()
-    logger.info { "will begin to prepare push" }
+    KoinJavaComponent.get(OkClientService::class.java)
+        .releaseResources()
 
-    pushIt.with(this)
-
-    val responsesAndErrors = ResponsesAndErrors(
-        pushIt.clientErrorListener.clientErrors,
-        pushIt.requestErrorListener.requestErrors,
-        pushIt.platformResponseListener.platformResponses
-    )
-    logger.debug { "report responses and errors $responsesAndErrors" }
-    report(responsesAndErrors)
+    appContext.unloadModules(services)
+    stopKoin()
 }

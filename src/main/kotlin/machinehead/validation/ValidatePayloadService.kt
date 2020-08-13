@@ -7,7 +7,6 @@ import machinehead.model.ClientError
 import machinehead.model.Payload
 import machinehead.model.yaml.From
 import machinehead.model.yaml.YAMLFile
-import machinehead.okclient.PayloadValidator
 import machinehead.parse.ParseErrors
 
 interface ValidatePayloadService {

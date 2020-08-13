@@ -1,9 +1,7 @@
 package machinehead.push.headers
 
 import com.squareup.okhttp.mockwebserver.MockWebServer
-import machinehead.PushIt
 import machinehead.extensions.pushIt
-import machinehead.okclient.OkClientAPNSRequest
 import machinehead.push.responses.APNSHeaders.Companion.APNS_COLLAPSE_ID
 import machinehead.push.assertion.APNSResponseAssertion
 import machinehead.push.responses.MockAPNSResponses
@@ -27,7 +25,7 @@ class CollapseIdTest : APNSResponseAssertion() {
         mockWebServer.play()
 
         val url = mockWebServer.getUrl("")
-        System.setProperty(OkClientAPNSRequest.TEST_URL_PROPERTY, url.toString())
+        System.setProperty(TestData.TEST_URL_PROPERTY, url.toString())
     }
 
     @Test

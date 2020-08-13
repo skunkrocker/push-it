@@ -7,6 +7,8 @@ import machinehead.servers.Stage
 class TestData {
     companion object {
 
+        const val TEST_URL_PROPERTY = "localhost.url"
+
         const val BODY_VALUE = "Hello World"
         const val SUBTITLE_VALUE = "Cool Subtitle"
 

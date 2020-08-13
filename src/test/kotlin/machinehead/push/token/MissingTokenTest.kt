@@ -1,9 +1,7 @@
 package machinehead.push.token
 
 import com.squareup.okhttp.mockwebserver.MockWebServer
-import machinehead.PushIt
 import machinehead.extensions.pushIt
-import machinehead.okclient.OkClientAPNSRequest
 import machinehead.push.assertion.APNSResponseAssertion
 import machinehead.push.TestData
 import machinehead.push.TestData.Companion.APNS_TOPIC_KEY
@@ -25,7 +23,7 @@ class MissingTokenTest : APNSResponseAssertion() {
         mockWebServer.play()
 
         val url = mockWebServer.getUrl("")
-        System.setProperty(OkClientAPNSRequest.TEST_URL_PROPERTY, url.toString())
+        System.setProperty(TestData.TEST_URL_PROPERTY, url.toString())
     }
 
     @Test

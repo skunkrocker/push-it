@@ -14,6 +14,10 @@ interface RequestService {
 
 class RequestServiceImpl(val token: String, val body: RequestBody, val stage: Stage) : RequestService {
 
+    companion object {
+        const val TEST_URL_PROPERTY = "localhost.url"
+    }
+
     private val logger = KotlinLogging.logger { }
 
     private var request: Request? = null
@@ -52,7 +56,7 @@ class RequestServiceImpl(val token: String, val body: RequestBody, val stage: St
     private fun getUrl(): String {
         var url = NotificationServers.urlForStage(stage)
 
-        if (System.getProperty(OkClientAPNSRequest.TEST_URL_PROPERTY).isNotNullOrEmpty()) {
+        if (System.getProperty(TEST_URL_PROPERTY).isNotNullOrEmpty()) {
             url = NotificationServers.urlForStage(Stage.TEST)
             logger.warn { "you overwrite the APNS  url to: $url " }
             logger.warn { "if you didn't do this for test purposes, please remove the property 'localhost.url' from your ENV" }
