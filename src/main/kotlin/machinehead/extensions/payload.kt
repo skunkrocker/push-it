@@ -16,7 +16,7 @@ import okhttp3.RequestBody
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
-import org.koin.java.KoinJavaComponent
+import org.koin.java.KoinJavaComponent.get
 
 infix fun Payload.notificationAsString(onParsed: (notification: String) -> Unit) {
     onParsed(notificationAsString())
@@ -37,6 +37,7 @@ fun Payload.notificationAsString(): String {
 infix fun Payload.push(report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
     val headers = this.headers
     val services = module {
+        single { PushApp() }
         single { OkClientServiceImpl() as OkClientService }
         single { CredentialsServiceImpl() as CredentialsService }
         single { ValidatePayloadServiceImpl() as ValidatePayloadService }
@@ -48,11 +49,12 @@ infix fun Payload.push(report: (Either<ClientError, RequestErrorsAndResults>) ->
     val appContext = startKoin {
         modules(services)
     }
-    PushApp().with(this) {
-        report(it)
-    }
+    get(PushApp::class.java)
+        .with(this) {
+            report(it)
+        }
 
-    KoinJavaComponent.get(OkClientService::class.java)
+    get(OkClientService::class.java)
         .releaseResources()
 
     appContext.unloadModules(services)
