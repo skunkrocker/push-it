@@ -1,7 +1,7 @@
 package machinehead.push.token
 
 import com.squareup.okhttp.mockwebserver.MockWebServer
-import machinehead.extensions.pushIt
+import machinehead.extensions.push
 import machinehead.push.TestData
 import machinehead.push.assertion.APNSResponseAssertion
 import machinehead.push.TestData.Companion.APNS_TOPIC_KEY
@@ -11,7 +11,6 @@ import machinehead.push.TestData.Companion.`get test payload`
 import machinehead.push.responses.MockAPNSResponses
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.TestInstance.Lifecycle
-import java.lang.AssertionError
 
 @TestInstance(Lifecycle.PER_CLASS)
 class BadTokenTest : APNSResponseAssertion() {
@@ -34,7 +33,7 @@ class BadTokenTest : APNSResponseAssertion() {
         `get test payload`(
             BAD_DEVICE_TOKEN, hashMapOf(APNS_TOPIC_KEY to APNS_TOPIC_VALUE)
         )
-            .pushIt { either ->
+            .push { either ->
                 either
                     .fold(
                         {

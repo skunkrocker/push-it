@@ -34,7 +34,7 @@ fun Payload.notificationAsString(): String {
     return gson.toJson(this.notification).toString()
 }
 
-infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
+infix fun Payload.push(report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) {
     val headers = this.headers
     val services = module {
         single { OkClientServiceImpl() as OkClientService }

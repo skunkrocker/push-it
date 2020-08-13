@@ -43,7 +43,7 @@ fun main() {
         */
         tokens = theTokens
 
-    } pushIt { errorsAndResponses ->
+    } push { errorsAndResponses ->
         errorsAndResponses
             .fold({
                 logger.error { it.message }

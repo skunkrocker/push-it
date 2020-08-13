@@ -1,10 +1,9 @@
 package machinehead.push.headers
 
 import com.squareup.okhttp.mockwebserver.MockWebServer
-import machinehead.extensions.pushIt
+import machinehead.extensions.push
 import machinehead.push.responses.APNSHeaders.Companion.APNS_COLLAPSE_ID
 import machinehead.push.assertion.APNSResponseAssertion
-import machinehead.push.responses.MockAPNSResponses
 import machinehead.push.TestData
 import machinehead.push.TestData.Companion.APNS_TOPIC_KEY
 import machinehead.push.TestData.Companion.APNS_TOPIC_VALUE
@@ -38,7 +37,7 @@ class CollapseIdTest : APNSResponseAssertion() {
                 APNS_TOPIC_KEY to APNS_TOPIC_VALUE,
                 APNS_COLLAPSE_ID to "11"
             )
-        ) pushIt { either ->
+        ) push { either ->
             //then
             mockWebServer.takeRequest()
 

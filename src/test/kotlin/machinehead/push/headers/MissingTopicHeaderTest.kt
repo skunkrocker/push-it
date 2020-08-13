@@ -1,6 +1,6 @@
 package machinehead.push.headers
 
-import machinehead.extensions.pushIt
+import machinehead.extensions.push
 import machinehead.push.TestData.Companion.TOKEN
 import machinehead.push.TestData.Companion.`get test payload`
 import org.junit.jupiter.api.Assertions
@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.koin.core.context.KoinContextHandler
 
 class MissingTopicHeaderTest {
 
@@ -17,7 +16,7 @@ class MissingTopicHeaderTest {
     fun `the payload is missing the topic header - return validation error`() {
 
         `get test payload`(TOKEN, hashMapOf())
-            .pushIt { either ->
+            .push { either ->
                 either
                     .fold(
                         { clientError ->

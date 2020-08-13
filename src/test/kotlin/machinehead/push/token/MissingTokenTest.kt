@@ -1,7 +1,7 @@
 package machinehead.push.token
 
 import com.squareup.okhttp.mockwebserver.MockWebServer
-import machinehead.extensions.pushIt
+import machinehead.extensions.push
 import machinehead.push.assertion.APNSResponseAssertion
 import machinehead.push.TestData
 import machinehead.push.TestData.Companion.APNS_TOPIC_KEY
@@ -32,7 +32,7 @@ class MissingTokenTest : APNSResponseAssertion() {
         `get test payload`(
             "", hashMapOf(APNS_TOPIC_KEY to APNS_TOPIC_VALUE)
         )
-            .pushIt { either ->
+            .push { either ->
                 either.fold({
                     Assertions.assertFalse(true)
                 }, {

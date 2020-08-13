@@ -2,7 +2,7 @@ package machinehead.push
 
 import com.google.gson.JsonParser
 import com.squareup.okhttp.mockwebserver.MockWebServer
-import machinehead.extensions.pushIt
+import machinehead.extensions.push
 import machinehead.push.TestData.Companion.`get test payload`
 import machinehead.push.responses.MockAPNSResponses
 import machinehead.servers.NotificationServers
@@ -33,7 +33,7 @@ class PushPayloadWithCustomFieldsTest {
     @ExperimentalStdlibApi
     fun `push notification for develop platform`() {
         `get test payload`(TestData.TOKEN, hashMapOf(TestData.APNS_TOPIC_KEY to TestData.APNS_TOPIC_VALUE))
-            .pushIt { either ->
+            .push { either ->
                 either.fold({
                     Assertions.assertFalse(true)
                 }, {

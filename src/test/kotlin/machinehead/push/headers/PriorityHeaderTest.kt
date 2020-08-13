@@ -1,7 +1,7 @@
 package machinehead.push.headers
 
 import com.squareup.okhttp.mockwebserver.MockWebServer
-import machinehead.extensions.pushIt
+import machinehead.extensions.push
 import machinehead.push.TestData
 import machinehead.push.responses.APNSHeaders.Companion.APNS_PRIORITY
 import machinehead.push.assertion.APNSResponseAssertion
@@ -37,7 +37,7 @@ class PriorityHeaderTest : APNSResponseAssertion() {
                 APNS_PRIORITY to "11"
             )
         )
-            .pushIt { either ->
+            .push { either ->
                 mockWebServer.takeRequest()
                 either.fold(
                     {
