@@ -14,6 +14,9 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent
+import org.koin.java.KoinJavaComponent.get
+import java.time.Duration
+import java.time.Instant
 
 class PushApp {
     private val validatePayloadService by KoinJavaComponent.inject(ValidatePayloadService::class.java)
@@ -41,34 +44,38 @@ class PushApp {
     private fun performPush(payload: Payload, report: (Either<ClientError, RequestErrorsAndResults>) -> Unit) =
         runBlocking {
             try {
-                val deferredList = mutableListOf<Deferred<Either<RequestError, PushResult>>>()
-
                 val mediaType: MediaType = "application/json; charset=utf-8".toMediaType()
                 val body: RequestBody = payload
                     .notificationAsString()
                     .toRequestBody(mediaType)
-
-                coroutineScope {
-                    payload
-                        .tokens
-                        .parallelStream()
-                        .forEach { token ->
-                            deferredList.add(
-                                async {
-                                    val notification = KoinJavaComponent.get(PushNotification::class.java) {
-                                        parametersOf(
-                                            token,
-                                            payload.stage,
-                                            body
-                                        )
-                                    }
-                                    notification.push(payload)
-                                }
+                logger.info { "body created" }
+                val notifications = payload.tokens
+                    .map { token ->
+                        get(PushNotification::class.java) {
+                            parametersOf(
+                                token,
+                                payload.stage,
+                                body
                             )
                         }
-                    logger.info { "waiting for the results" }
-                    val results = deferredList.awaitAll()
-                    logger.info { "all results are finished" }
+                    }
+                logger.info { "the notification instances were created: ${notifications.size}" }
+                coroutineScope {
+                    logger.info { "now pushing and waiting for results" }
+
+                    val start = Instant.now()
+                    val results = notifications.map { notification ->
+                        async {
+                            notification.push(payload)
+                        }
+                    }.awaitAll()
+
+                    val end = Instant.now()
+
+                    logger.info { "waited for all in ${Duration.between(start, end).toSeconds()} s " }
+
+                    //val results = differedNotifications.awaitAll()//deferredList.awaitAll()
+                    logger.info { "all pushes are finished, results number: ${results.size}" }
                     report(Either.right(requestErrorsAndResponses(results)))
                 }
             } catch (e: Throwable) {
