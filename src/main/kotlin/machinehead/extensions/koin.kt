@@ -12,6 +12,7 @@ import org.koin.dsl.module
 import machinehead.validation.ValidatePayloadService
 import machinehead.validation.ValidatePayloadServiceImpl
 import okhttp3.RequestBody
+import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
 import org.koin.java.KoinJavaComponent
 import org.koin.java.KoinJavaComponent.get
@@ -36,5 +37,7 @@ infix fun Payload.pushIt(report: (Either<ClientError, RequestErrorsAndResults>) 
 
     get(OkClientService::class.java)
         .releaseResources()
-    appContext.close()
+
+    appContext.unloadModules(services)
+    stopKoin()
 }
